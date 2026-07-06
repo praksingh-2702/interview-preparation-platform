@@ -49,7 +49,6 @@ public class WebSecurityConfig {
 
     @Bean
     public AuthTokenFilter authenticationJwtTokenFilter() {
-        // Pass the userRepository here to clear the compile error and enable DB session lookups
         return new AuthTokenFilter(jwtUtils, userDetailsService(), userRepository);
     }
 
@@ -63,7 +62,6 @@ public class WebSecurityConfig {
         http
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .csrf(csrf -> csrf.disable())
-            // Added explicit stateless security session policy management
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
@@ -79,7 +77,15 @@ public class WebSecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("http://localhost:3000"));
+        
+        // Allowed both local testing and your live production/preview deployment URLs
+        configuration.setAllowedOrigins(Arrays.asList(
+                "http://localhost:3000",
+                "https://interview-preparation-platform-roan.vercel.app",
+                "https://interview-preparation-platform-git-5e5cb7-diwijprakhar27-4629s-projects.vercel.app",
+                "https://interview-preparation-platform-ais61onf8.vercel.app"
+        ));
+        
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Cache-Control"));
         configuration.setAllowCredentials(true);
