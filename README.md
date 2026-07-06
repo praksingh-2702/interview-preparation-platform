@@ -1,4 +1,4 @@
-# FreakCode Top 100 🚀
+# FreakCode Top 100 
 
 [![Production Frontend](https://img.shields.io/badge/Frontend-Vercel-black?style=flat-square&logo=vercel)](https://interview-preparation-platform-roan.vercel.app)
 [![Production Backend](https://img.shields.io/badge/Backend-Render-46E3B7?style=flat-square&logo=render&logoColor=white)](https://freakcode-backend.onrender.com)
@@ -8,7 +8,7 @@ A full-stack technical interview preparation platform architected to empower dev
 
 ---
 
-## 📸 Application Interface
+## Application Interface
 
 > **Visualize Your Progress:** High-contrast dark mode UI built for streamlined navigation and distraction-free learning.
 
@@ -18,13 +18,13 @@ A full-stack technical interview preparation platform architected to empower dev
 
 ---
 
-## 🌐 Live Application
+##  Live Application
 * **Production URL:** [https://interview-preparation-platform-roan.vercel.app](https://interview-preparation-platform-roan.vercel.app)
 * *Note: The React frontend completely handles dynamic API requests to the hosted Spring Boot environment deployed on Render.*
 
 ---
 
-## 🛠️ Tech Stack & Architecture
+## Tech Stack & Architecture
 
 ### **Frontend Microservice**
 * **Core Framework:** React.js (Functional components, Hook-driven state management)
@@ -43,16 +43,16 @@ A full-stack technical interview preparation platform architected to empower dev
 
 ---
 
-## ✨ Key Engineering Achievements
+## Key Engineering Achievements
 
-* 📊 **Dynamic Syllabus Tracker:** Built a state-driven metrics engine tracking individual problem mastery percentages segmented across *Easy*, *Medium*, and *Hard* difficulties.
-* 🔒 **Stateless Identity Regulation:** Implemented an enterprise-grade authentication protocol using a custom `AuthTokenFilter`. Tokens are strictly validated on every endpoint request, ensuring secure data retrieval.
-* 🌐 **Granular CORS Management:** Engineered custom Cross-Origin Resource Sharing filters within the Java security configuration to safely enable and secure cross-domain preflight `OPTIONS` blocks.
-* 🏗️ **Strict Separation of Concerns:** Organized the application into decoupled data presentation, business execution, and database persistence layers to simplify feature scaling.
+*  **Dynamic Syllabus Tracker:** Built a state-driven metrics engine tracking individual problem mastery percentages segmented across *Easy*, *Medium*, and *Hard* difficulties.
+*  **Stateless Identity Regulation:** Implemented an enterprise-grade authentication protocol using a custom `AuthTokenFilter`. Tokens are strictly validated on every endpoint request, ensuring secure data retrieval.
+*  **Granular CORS Management:** Engineered custom Cross-Origin Resource Sharing filters within the Java security configuration to safely enable and secure cross-domain preflight `OPTIONS` blocks.
+*  **Strict Separation of Concerns:** Organized the application into decoupled data presentation, business execution, and database persistence layers to simplify feature scaling.
 
 ---
 
-## 🚀 RESTful API Blueprint
+## RESTful API Blueprint
 
 | HTTP Method | API Endpoint | Operational Action | Access Token Required |
 | :--- | :--- | :--- | :--- |
@@ -63,7 +63,7 @@ A full-stack technical interview preparation platform architected to empower dev
 
 ---
 
-## ⚙️ Local Development Environment Setup
+## Local Development Environment Setup
 
 ### 1. Prerequisites
 * **Java SDK:** Version 17 or higher
