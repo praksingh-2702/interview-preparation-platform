@@ -15,7 +15,6 @@ const Dashboard = ({ onLogout }) => {
     const [loading, setLoading] = useState(false);
     
     const [expandedTopics, setExpandedTopics] = useState({ "Arrays": true, "Linked Lists": true });
-    const token = localStorage.getItem('token');
 
     const fetchData = async () => {
         setLoading(true);
@@ -31,7 +30,7 @@ const Dashboard = ({ onLogout }) => {
                 headers: { Authorization: `Bearer ${currentToken}` }
             });
             
-            // CRITICAL FIX: Normalize map keys to Strings explicitly
+            // Normalize map keys to Strings explicitly
             const mappedProgress = {};
             if (progRes.data && typeof progRes.data === 'object' && !Array.isArray(progRes.data)) {
                 Object.keys(progRes.data).forEach(key => {
@@ -98,15 +97,22 @@ const Dashboard = ({ onLogout }) => {
         setExpandedTopics(prev => ({ ...prev, [topic]: !prev[topic] }));
     };
 
-    // --- SEGMENTED DIFFICULTY CALCULATIONS ---
-    const getCountByDiff = (diff) => questions.filter(q => q.difficulty === diff).length;
-    const getSolvedByDiff = (diff) => questions.filter(q => q.difficulty === diff && progressMap[String(q.id)]?.solved).length;
+    // --- DYNAMICALLY FILTERED METRIC CALCULATIONS ---
+    // This ensures your progress bars and circular indicators dynamically update as dropdown filters change
+    const activeFilteredQuestions = questions.filter(q => {
+        const matchesCompany = !companyFilter || (q.companies && Array.from(q.companies).includes(companyFilter));
+        const matchesDifficulty = !difficultyFilter || q.difficulty === difficultyFilter;
+        return matchesCompany && matchesDifficulty;
+    });
+
+    const getCountByDiff = (diff) => activeFilteredQuestions.filter(q => q.difficulty === diff).length;
+    const getSolvedByDiff = (diff) => activeFilteredQuestions.filter(q => q.difficulty === diff && progressMap[String(q.id)]?.solved).length;
 
     const easyTotal = getCountByDiff("EASY"), easySolved = getSolvedByDiff("EASY");
     const medTotal = getCountByDiff("MEDIUM"), medSolved = getSolvedByDiff("MEDIUM");
     const hardTotal = getCountByDiff("HARD"), hardSolved = getSolvedByDiff("HARD");
     
-    const overallTotal = questions.length;
+    const overallTotal = activeFilteredQuestions.length;
     const overallSolved = easySolved + medSolved + hardSolved;
     const overallPct = overallTotal > 0 ? Math.round((overallSolved / overallTotal) * 100) : 0;
 
@@ -168,10 +174,8 @@ const Dashboard = ({ onLogout }) => {
                 {loading ? <p style={{ textAlign: 'center', color: '#8b949e' }}>Refreshing directory index mappings...</p> : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                         {ALL_TOPICS.map(topic => {
-                            // 1. Group questions belonging to this specific DSA topic category
                             const categoryQuestions = questions.filter(q => q.category && q.category.toLowerCase() === topic.toLowerCase());
                             
-                            // 🚀 2. CRITICAL FIX: Intercept the loop and filter the sub-rows matching active selection states
                             const topicQuestions = categoryQuestions.filter(q => {
                                 const matchesCompany = !companyFilter || (q.companies && Array.from(q.companies).includes(companyFilter));
                                 const matchesDifficulty = !difficultyFilter || q.difficulty === difficultyFilter;
@@ -180,7 +184,6 @@ const Dashboard = ({ onLogout }) => {
 
                             const isExpanded = !!expandedTopics[topic];
                             
-                            // If filters are active and this accordion category has zero inner matches, hide it completely
                             if ((companyFilter || difficultyFilter) && topicQuestions.length === 0) return null;
 
                             return (
