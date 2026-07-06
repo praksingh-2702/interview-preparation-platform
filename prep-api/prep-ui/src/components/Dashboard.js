@@ -14,25 +14,41 @@ const Dashboard = ({ onLogout }) => {
     const [difficultyFilter, setDifficultyFilter] = useState('');
     const [loading, setLoading] = useState(false);
     
-    // Track which topic headings are expanded or collapsed
     const [expandedTopics, setExpandedTopics] = useState({ "Arrays": true, "Linked Lists": true });
-
     const token = localStorage.getItem('token');
 
     const fetchData = async () => {
         setLoading(true);
         try {
-            const token = localStorage.getItem('token');
+            const currentToken = localStorage.getItem('token');
             const qRes = await api.get('/api/questions', {
                 params: { company: companyFilter, difficulty: difficultyFilter },
-                headers: { Authorization: `Bearer ${token}` }
+                headers: { Authorization: `Bearer ${currentToken}` }
             });
             setQuestions(qRes.data);
 
             const progRes = await api.get('/api/progress/my-status', {
-                headers: { Authorization: `Bearer ${token}` }
+                headers: { Authorization: `Bearer ${currentToken}` }
             });
-            setProgressMap(progRes.data);
+            
+            // CRITICAL FIX: Normalize map keys to Strings explicitly
+            const mappedProgress = {};
+            if (progRes.data && typeof progRes.data === 'object' && !Array.isArray(progRes.data)) {
+                Object.keys(progRes.data).forEach(key => {
+                    mappedProgress[String(key)] = progRes.data[key];
+                });
+                setProgressMap(mappedProgress);
+            } else if (Array.isArray(progRes.data)) {
+                progRes.data.forEach(item => {
+                    mappedProgress[String(item.question.id)] = {
+                        solved: item.solved,
+                        revised: item.revised
+                    };
+                });
+                setProgressMap(mappedProgress);
+            } else {
+                setProgressMap({});
+            }
         } catch (error) {
             console.error("Error pulling platform info:", error);
         } finally {
@@ -44,18 +60,37 @@ const Dashboard = ({ onLogout }) => {
         fetchData();
     }, [companyFilter, difficultyFilter]);
 
-    const handleStatusClick = async (questionId, statusType, problemUrl) => {
+    const handleCheckboxToggle = async (questionId, field, currentValue) => {
+        const stringId = String(questionId);
+        const currentRecord = progressMap[stringId] || { solved: false, revised: false };
+        
+        const updatedPayload = {
+            questionId,
+            solved: field === 'solved' ? !currentValue : currentRecord.solved,
+            revised: field === 'revised' ? !currentValue : currentRecord.revised
+        };
+
+        // Optimistically update frontend state UI instantly to unlock animations
+        setProgressMap(prev => ({
+            ...prev,
+            [stringId]: {
+                solved: updatedPayload.solved,
+                revised: updatedPayload.revised
+            }
+        }));
+
         try {
-            await api.post('/api/progress/complete', { questionId, statusType }, {
-                headers: { Authorization: `Bearer ${token}` }
+            const currentToken = localStorage.getItem('token');
+            await api.post('/api/progress/toggle', updatedPayload, {
+                headers: { Authorization: `Bearer ${currentToken}` }
             });
-            // Instant map reload trigger
-            const res = await api.get('/api/progress/my-status', { headers: { Authorization: `Bearer ${token}` } });
-            setProgressMap(res.data);
-            window.open(problemUrl, '_blank', 'noreferrer');
         } catch (error) {
-            console.error("Progress trace failure:", error);
-            window.open(problemUrl, '_blank', 'noreferrer');
+            console.error("Failed to update execution progress metrics:", error);
+            // Revert state back if network fails completely
+            setProgressMap(prev => ({
+                ...prev,
+                [stringId]: currentRecord
+            }));
         }
     };
 
@@ -65,7 +100,7 @@ const Dashboard = ({ onLogout }) => {
 
     // --- SEGMENTED DIFFICULTY CALCULATIONS ---
     const getCountByDiff = (diff) => questions.filter(q => q.difficulty === diff).length;
-    const getSolvedByDiff = (diff) => questions.filter(q => q.difficulty === diff && (progressMap[q.id] === "FIRST_SOLVE" || progressMap[q.id] === "REVISION_DONE")).length;
+    const getSolvedByDiff = (diff) => questions.filter(q => q.difficulty === diff && progressMap[String(q.id)]?.solved).length;
 
     const easyTotal = getCountByDiff("EASY"), easySolved = getSolvedByDiff("EASY");
     const medTotal = getCountByDiff("MEDIUM"), medSolved = getSolvedByDiff("MEDIUM");
@@ -79,9 +114,11 @@ const Dashboard = ({ onLogout }) => {
         <div style={{ background: '#0d1117', minHeight: '100vh', color: '#c9d1d9', padding: '30px 20px', fontFamily: '-apple-system, sans-serif' }}>
             <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
                 
-                {/* Header Navbar */}
+                {/* Header Navbar - Clean Rebranded Typography Without Emojis */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px' }}>
-                    <h2 style={{ margin: 0, fontSize: '24px', color: '#f0f6fc' }}>🚀 PrepMind <span style={{ color: '#58a6ff', fontWeight: '400' }}>Tech Engine</span></h2>
+                    <h2 style={{ margin: 0, fontSize: '24px', color: '#f0f6fc', letterSpacing: '-0.5px' }}>
+                        FreakCode <span style={{ color: '#58a6ff', fontWeight: '400' }}>Top 100</span>
+                    </h2>
                     <button onClick={onLogout} style={{ padding: '8px 16px', background: '#da3637', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600' }}>Logout</button>
                 </div>
 
@@ -98,15 +135,15 @@ const Dashboard = ({ onLogout }) => {
                             <div style={{ width: `${overallPct}%`, height: '100%', background: 'linear-gradient(90deg, #58a6ff, #238636)', transition: '0.3s' }} />
                         </div>
                         <div style={{ display: 'flex', gap: '20px', fontSize: '13px' }}>
-                            <span style={{ color: '#238636' }}>● Easy: {easySolved}/{easyTotal}</span>
-                            <span style={{ color: '#d29922' }}>● Medium: {medSolved}/{medTotal}</span>
-                            <span style={{ color: '#f85149' }}>● Hard: {hardSolved}/{hardTotal}</span>
+                            <span style={{ color: '#238636' }}>Easy: {easySolved}/{easyTotal}</span>
+                            <span style={{ color: '#d29922' }}>Medium: {medSolved}/{medTotal}</span>
+                            <span style={{ color: '#f85149' }}>Hard: {hardSolved}/{hardTotal}</span>
                         </div>
                     </div>
 
-                    {/* Circular Segmented Tracking Indicator Ring */}
-                    <div style={{ background: '#161b22', border: '1px solid #30363d', borderRadius: '12px', padding: '15px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
-                        <div style={{ width: '100px', height: '100px', borderRadius: '50%', background: `conic-gradient(#238636 0% ${easyTotal ? (easySolved/overallTotal)*360 : 0}deg, #d29922 ${easyTotal ? (easySolved/overallTotal)*360 : 0}deg ${medTotal ? ((easySolved+medSolved)/overallTotal)*360 : 0}deg, #f85149 ${medTotal ? ((easySolved+medSolved)/overallTotal)*360 : 0}deg 360deg)`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {/* Circular Segmented Indicator Ring */}
+                    <div style={{ background: '#161b22', border: '1px solid #30363d', borderRadius: '12px', padding: '15px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                        <div style={{ width: '100px', height: '100px', borderRadius: '50%', background: `conic-gradient(#238636 0% ${overallTotal ? (easySolved/overallTotal)*360 : 0}deg, #d29922 ${overallTotal ? (easySolved/overallTotal)*360 : 0}deg ${overallTotal ? ((easySolved+medSolved)/overallTotal)*360 : 0}deg, #f85149 ${overallTotal ? ((easySolved+medSolved)/overallTotal)*360 : 0}deg 360deg)`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             <div style={{ width: '76px', height: '76px', borderRadius: '50%', background: '#161b22', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
                                 <span style={{ fontSize: '18px', fontWeight: '700', color: '#f0f6fc' }}>{overallPct}%</span>
                                 <span style={{ fontSize: '10px', color: '#8b949e' }}>Done</span>
@@ -131,10 +168,19 @@ const Dashboard = ({ onLogout }) => {
                 {loading ? <p style={{ textAlign: 'center', color: '#8b949e' }}>Refreshing directory index mappings...</p> : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                         {ALL_TOPICS.map(topic => {
-                            // FIXED: Changed q.topic to q.category to read from your PostgreSQL database fields correctly
-                            const topicQuestions = questions.filter(q => q.category && q.category.toLowerCase() === topic.toLowerCase());
+                            // 1. Group questions belonging to this specific DSA topic category
+                            const categoryQuestions = questions.filter(q => q.category && q.category.toLowerCase() === topic.toLowerCase());
+                            
+                            // 🚀 2. CRITICAL FIX: Intercept the loop and filter the sub-rows matching active selection states
+                            const topicQuestions = categoryQuestions.filter(q => {
+                                const matchesCompany = !companyFilter || (q.companies && Array.from(q.companies).includes(companyFilter));
+                                const matchesDifficulty = !difficultyFilter || q.difficulty === difficultyFilter;
+                                return matchesCompany && matchesDifficulty;
+                            });
+
                             const isExpanded = !!expandedTopics[topic];
                             
+                            // If filters are active and this accordion category has zero inner matches, hide it completely
                             if ((companyFilter || difficultyFilter) && topicQuestions.length === 0) return null;
 
                             return (
@@ -143,7 +189,7 @@ const Dashboard = ({ onLogout }) => {
                                     {/* Collapsible Header Banner */}
                                     <div onClick={() => toggleTopic(topic)} style={{ padding: '14px 16px', background: '#21262d', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', userSelect: 'none' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                            <span style={{ color: '#8b949e', fontSize: '12px', transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>▶</span>
+                                            <span style={{ color: '#8b949e', fontSize: '10px', transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s', display: 'inline-block' }}>▶</span>
                                             <span style={{ fontWeight: '600', color: '#f0f6fc', fontSize: '15px' }}>{topic}</span>
                                             <span style={{ background: '#30363d', color: '#8b949e', padding: '2px 8px', borderRadius: '10px', fontSize: '11px' }}>{topicQuestions.length}</span>
                                         </div>
@@ -158,29 +204,46 @@ const Dashboard = ({ onLogout }) => {
                                                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                                                     <tbody>
                                                         {topicQuestions.map(q => {
-                                                            const currentStatus = progressMap[q.id] || "";
-                                                            const isFirstSolved = currentStatus === "FIRST_SOLVE" || currentStatus === "REVISION_DONE";
-                                                            const isRevised = currentStatus === "REVISION_DONE";
+                                                            const isSolvedChecked = !!progressMap[String(q.id)]?.solved;
+                                                            const isRevisedChecked = !!progressMap[String(q.id)]?.revised;
 
                                                             return (
                                                                 <tr key={q.id} style={{ borderBottom: '1px solid #21262d' }}>
-                                                                    <td style={{ padding: '14px 16px', fontWeight: '600', color: '#f0f6fc', width: '25%' }}>{q.title}</td>
-                                                                    <td style={{ padding: '14px 16px', color: '#8b949e', fontSize: '13px', width: '45%' }}>{q.description}</td>
+                                                                    <td style={{ padding: '14px 16px', fontWeight: '600', width: '25%' }}>
+                                                                        <a href={q.problemUrl} target="_blank" rel="noreferrer" style={{ color: '#58a6ff', textDecoration: 'none' }}>
+                                                                            {q.title}
+                                                                        </a>
+                                                                    </td>
+                                                                    <td style={{ padding: '14px 16px', color: '#8b949e', fontSize: '13px', width: '40%' }}>{q.description}</td>
                                                                     <td style={{ padding: '14px 16px', width: '10%' }}>
                                                                         <span style={{ padding: '3px 8px', borderRadius: '12px', fontSize: '11px', color: 'white', fontWeight: '600', background: q.difficulty === 'EASY' ? '#238636' : q.difficulty === 'MEDIUM' ? '#d29922' : '#f85149' }}>
                                                                             {q.difficulty}
                                                                         </span>
                                                                     </td>
-                                                                    <td style={{ padding: '14px 16px', fontSize: '13px', color: '#58a6ff', width: '10%' }}>
+                                                                    <td style={{ padding: '14px 16px', fontSize: '13px', color: '#c9d1d9', width: '10%' }}>
                                                                         {q.companies ? Array.from(q.companies).join(', ') : 'General'}
                                                                     </td>
-                                                                    <td style={{ padding: '14px 16px', display: 'flex', gap: '8px', justifyContent: 'flex-end', alignItems: 'center' }}>
-                                                                        <button onClick={() => handleStatusClick(q.id, "FIRST_SOLVE", q.problemUrl)} style={{ padding: '5px 10px', border: '1px solid #238636', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: '600', background: isFirstSolved ? '#238636' : 'transparent', color: isFirstSolved ? 'white' : '#238636' }}>
-                                                                            {isFirstSolved ? "✅ Solved" : "Solve"}
-                                                                        </button>
-                                                                        <button onClick={() => handleStatusClick(q.id, "REVISION_DONE", q.problemUrl)} style={{ padding: '5px 10px', border: '1px solid #d29922', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: '600', background: isRevised ? '#d29922' : 'transparent', color: isRevised ? 'white' : '#d29922' }}>
-                                                                            {isRevised ? "🔄 Revised" : "Revise"}
-                                                                        </button>
+                                                                    <td style={{ padding: '14px 16px', width: '15%' }}>
+                                                                        <div style={{ display: 'flex', gap: '15px', justifyContent: 'flex-end', alignItems: 'center' }}>
+                                                                            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#238636', cursor: 'pointer', userSelect: 'none' }}>
+                                                                                <input 
+                                                                                    type="checkbox" 
+                                                                                    checked={isSolvedChecked} 
+                                                                                    onChange={() => handleCheckboxToggle(q.id, 'solved', isSolvedChecked)}
+                                                                                    style={{ accentColor: '#238636', width: '15px', height: '15px', cursor: 'pointer' }}
+                                                                                />
+                                                                                Solved
+                                                                            </label>
+                                                                            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#d29922', cursor: 'pointer', userSelect: 'none' }}>
+                                                                                <input 
+                                                                                    type="checkbox" 
+                                                                                    checked={isRevisedChecked} 
+                                                                                    onChange={() => handleCheckboxToggle(q.id, 'revised', isRevisedChecked)}
+                                                                                    style={{ accentColor: '#d29922', width: '15px', height: '15px', cursor: 'pointer' }}
+                                                                                />
+                                                                                Revised
+                                                                            </label>
+                                                                        </div>
                                                                     </td>
                                                                 </tr>
                                                             );
