@@ -1,4 +1,4 @@
-<img width="959" height="532" alt="image" src="https://github.com/user-attachments/assets/26ff66e7-95d4-4f95-b136-a583998ddbec" /># FreakCode Top 100 🚀
+# FreakCode Top 100 🚀
 
 [![Production Frontend](https://img.shields.io/badge/Frontend-Vercel-black?style=flat-square&logo=vercel)](https://interview-preparation-platform-roan.vercel.app)
 [![Production Backend](https://img.shields.io/badge/Backend-Render-46E3B7?style=flat-square&logo=render&logoColor=white)](https://freakcode-backend.onrender.com)
