@@ -11,7 +11,6 @@ import java.util.Date;
 @Component
 public class JwtUtils {
 
-    // Spring injects these values from application.properties
     @Value("${app.jwt.secret}")
     private String jwtSecret;
 
@@ -20,15 +19,16 @@ public class JwtUtils {
 
     private Key key;
 
-    // This runs automatically after Spring injects the variables
     @PostConstruct
     public void init() {
         this.key = Keys.hmacShaKeyFor(jwtSecret.getBytes());
     }
 
-    public String generateJwtToken(String username) {
+    // Updated to accept the tracking session UUID and add it as a custom claim
+    public String generateJwtToken(String username, String sessionId) {
         return Jwts.builder()
                 .setSubject(username)
+                .claim("sessionId", sessionId) // Binds active session verification state inside the token
                 .setIssuedAt(new Date())
                 .setExpiration(new Date((new Date()).getTime() + jwtExpirationMs))
                 .signWith(key)
@@ -38,6 +38,12 @@ public class JwtUtils {
     public String getUsernameFromJwtToken(String token) {
         return Jwts.parserBuilder().setSigningKey(key).build()
                 .parseClaimsJws(token).getBody().getSubject();
+    }
+
+    // Helper to read the unique session verification state claim back out on inbound calls
+    public String getSessionIdFromJwtToken(String token) {
+        return Jwts.parserBuilder().setSigningKey(key).build()
+                .parseClaimsJws(token).getBody().get("sessionId", String.class);
     }
 
     public boolean validateJwtToken(String authToken) {

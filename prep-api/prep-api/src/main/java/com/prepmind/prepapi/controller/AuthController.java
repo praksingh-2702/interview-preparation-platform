@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Optional;
 
-@CrossOrigin(origins = "http://localhost:3000") // Unlocks connection from frontend
+@CrossOrigin(origins = "http://localhost:3000")
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
@@ -20,6 +20,11 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@RequestBody RegisterRequest registerRequest) {
+        // Enforce strict enterprise onboarding: Only verified Gmail domains permitted
+        if (registerRequest.getEmail() == null || !registerRequest.getEmail().toLowerCase().endsWith("@gmail.com")) {
+            return ResponseEntity.badRequest().body("Error: Identity onboarding requires a verified @gmail.com registration pathway.");
+        }
+
         String result = authService.registerUser(registerRequest);
         if (result.startsWith("Error:")) {
             return ResponseEntity.badRequest().body(result);

@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.HashSet;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class AuthService {
@@ -53,7 +54,17 @@ public class AuthService {
         Optional<User> userOpt = userRepository.findByUsername(loginRequest.getUsername());
         
         if (userOpt.isPresent() && passwordEncoder.matches(loginRequest.getPassword(), userOpt.get().getPassword())) {
-            String token = jwtUtils.generateJwtToken(loginRequest.getUsername());
+            User user = userOpt.get();
+            
+            // 1. Generate a brand new cryptographically secure session UUID
+            String dynamicSessionId = UUID.randomUUID().toString();
+            
+            // 2. Persist the session ID to the user record (overwrites old logins)
+            user.setCurrentSessionId(dynamicSessionId);
+            userRepository.save(user);
+            
+            // 3. Build the JWT by binding both username and our fresh sessionId claim
+            String token = jwtUtils.generateJwtToken(user.getUsername(), dynamicSessionId);
             return Optional.of(token);
         }
         return Optional.empty();
