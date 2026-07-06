@@ -1,4 +1,4 @@
-# FreakCode Top 100 🚀
+<img width="959" height="532" alt="image" src="https://github.com/user-attachments/assets/26ff66e7-95d4-4f95-b136-a583998ddbec" /># FreakCode Top 100 🚀
 
 [![Production Frontend](https://img.shields.io/badge/Frontend-Vercel-black?style=flat-square&logo=vercel)](https://interview-preparation-platform-roan.vercel.app)
 [![Production Backend](https://img.shields.io/badge/Backend-Render-46E3B7?style=flat-square&logo=render&logoColor=white)](https://freakcode-backend.onrender.com)
@@ -12,7 +12,8 @@ A full-stack technical interview preparation platform architected to empower dev
 
 > **Visualize Your Progress:** High-contrast dark mode UI built for streamlined navigation and distraction-free learning.
 
-![FreakCode Dashboard](./dashboard.jpg)
+![FreakCode Dashboard](<img width="959" height="532" alt="image" src="https://github.com/user-attachments/assets/671160be-f948-45af-96f0-1c1b6d64bb08" />
+)
 
 ---
 
@@ -74,4 +75,16 @@ Set up your local configuration by adding the following properties to your appli
 spring.datasource.url=jdbc:postgresql://localhost:5432/interview_prep_db
 spring.datasource.username=your_postgres_username
 spring.datasource.password=your_postgres_password
+
 prepapi.app.jwtSecret=your_secure_signing_secret_key_string
+3. Execution Execution Controls
+Bash
+# Spin up the React UI Client
+cd frontend
+npm install
+npm start
+
+# Spin up the Spring Boot API Service
+cd backend
+mvn clean install
+mvn spring-boot:run
