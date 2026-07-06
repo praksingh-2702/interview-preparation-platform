@@ -12,8 +12,9 @@ A full-stack technical interview preparation platform architected to empower dev
 
 > **Visualize Your Progress:** High-contrast dark mode UI built for streamlined navigation and distraction-free learning.
 
-![FreakCode Dashboard](<img width="959" height="532" alt="image" src="https://github.com/user-attachments/assets/671160be-f948-45af-96f0-1c1b6d64bb08" />
-)
+![FreakCode Dashboard] <img width="959" height="499" alt="image" src="https://github.com/user-attachments/assets/158493bb-b6b8-4fc7-8bf5-6c43fed35f2e" />
+<img width="959" height="535" alt="image" src="https://github.com/user-attachments/assets/62a982c6-c706-4e45-8b22-ec58ad667e41" />
+
 
 ---
 
