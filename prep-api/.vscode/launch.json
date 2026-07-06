@@ -1,0 +1,13 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        
+        {
+            "type": "java",
+            "name": "Launch PrepApiApplication",
+            "request": "launch",
+            "mainClass": "com.prepmind.prepapi.PrepApiApplication",
+            "vmArgs": "-Dspring.profiles.active=local"
+        }
+    ]
+}
