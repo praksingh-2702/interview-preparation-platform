@@ -1,0 +1,15 @@
+# Dependencies & build output
+node_modules/
+frontend/build/
+backend/target/
+
+# Secrets
+.env
+.env.local
+.env.*.local
+
+# IDE / OS
+.idea/
+.vscode/
+*.iml
+.DS_Store

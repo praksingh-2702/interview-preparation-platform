@@ -1,0 +1,42 @@
+import React from 'react';
+import { DIFFICULTY_LABEL } from '../utils/stats';
+
+const QuestionRow = ({ question, status, saving, onToggle }) => {
+    const solved = !!status?.solved;
+    const revised = !!status?.revised;
+
+    return (
+        <li className={`question ${solved ? 'question-solved' : ''}`}>
+            <div className="question-main">
+                <a href={question.problemUrl} target="_blank" rel="noopener noreferrer" className="question-title">
+                    {question.title}
+                </a>
+                {question.description && <p className="question-desc">{question.description}</p>}
+            </div>
+
+            <div className="question-meta">
+                <span className={`pill pill-${question.difficulty.toLowerCase()}`}>
+                    {DIFFICULTY_LABEL[question.difficulty] || question.difficulty}
+                </span>
+                <span className="companies">
+                    {(question.companies || []).map((c) => <span key={c} className="chip">{c}</span>)}
+                </span>
+            </div>
+
+            <div className="question-actions">
+                <label className="check check-solved">
+                    <input type="checkbox" checked={solved} disabled={saving}
+                           onChange={() => onToggle(question.id, 'solved')} />
+                    Solved
+                </label>
+                <label className="check check-revised">
+                    <input type="checkbox" checked={revised} disabled={saving}
+                           onChange={() => onToggle(question.id, 'revised')} />
+                    Revised
+                </label>
+            </div>
+        </li>
+    );
+};
+
+export default React.memo(QuestionRow);

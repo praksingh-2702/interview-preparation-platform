@@ -1,91 +1,138 @@
-# FreakCode Top 100 
+# FreakCode Top 100
 
-[![Production Frontend](https://img.shields.io/badge/Frontend-Vercel-black?style=flat-square&logo=vercel)](https://interview-preparation-platform-roan.vercel.app)
-[![Production Backend](https://img.shields.io/badge/Backend-Render-46E3B7?style=flat-square&logo=render&logoColor=white)](https://freakcode-backend.onrender.com)
+[![Frontend](https://img.shields.io/badge/Frontend-Vercel-black?style=flat-square&logo=vercel)](https://interview-preparation-platform-roan.vercel.app)
+[![Backend](https://img.shields.io/badge/Backend-Render-46E3B7?style=flat-square&logo=render&logoColor=white)](https://freakcode-backend.onrender.com/actuator/health)
 [![Database](https://img.shields.io/badge/Database-PostgreSQL-336791?style=flat-square&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 
-A full-stack technical interview preparation platform architected to empower developers to systematically track, visualize, and master core Data Structures and Algorithms (DSA). 
+A full-stack DSA interview-prep tracker: 100 curated problems across 10 topics, per-user Solved / Revised tracking, and progress broken down by difficulty and company.
+
+**Live:** https://interview-preparation-platform-roan.vercel.app
+
+<img width="959" height="499" alt="Dashboard" src="https://github.com/user-attachments/assets/158493bb-b6b8-4fc7-8bf5-6c43fed35f2e" />
 
 ---
 
-## Application Interface
+## Repository layout
 
-> **Visualize Your Progress:** High-contrast dark mode UI built for streamlined navigation and distraction-free learning.
+```
+.
+├── backend/    Spring Boot 4 REST API (Java 17, PostgreSQL, JWT)   → deployed on Render (Docker)
+└── frontend/   React 19 single-page app (Create React App, Axios)  → deployed on Vercel
+```
 
-![FreakCode Dashboard] <img width="959" height="499" alt="image" src="https://github.com/user-attachments/assets/158493bb-b6b8-4fc7-8bf5-6c43fed35f2e" />
-<img width="959" height="535" alt="image" src="https://github.com/user-attachments/assets/62a982c6-c706-4e45-8b22-ec58ad667e41" />
+## Tech stack
 
-
----
-
-##  Live Application
-* **Production URL:** [https://interview-preparation-platform-roan.vercel.app](https://interview-preparation-platform-roan.vercel.app)
-* *Note: The React frontend completely handles dynamic API requests to the hosted Spring Boot environment deployed on Render.*
-
----
-
-## Tech Stack & Architecture
-
-### **Frontend Microservice**
-* **Core Framework:** React.js (Functional components, Hook-driven state management)
-* **Styling Engine:** Tailwind CSS (Custom dark-theme token configurations)
-* **Data Fetching:** Axios (Configured with global interceptors for stateful token attachment)
-
-### **Backend Enterprise Service**
-* **Core Framework:** Java & Spring Boot (Leveraging the Controller-Service-Repository structural pattern)
-* **Security & Auth:** Spring Security Core + Stateless JSON Web Tokens (JWT)
-* **Data Security:** Cryptographic one-way password isolation using the **BCrypt** hashing algorithm
-
-### **Infrastructure & DevOps**
-* **Storage Engine:** Managed PostgreSQL relational database
-* **UI Hosting:** Vercel (Edge network deployment with automatic build caching)
-* **API Engine:** Render Web Services (Configured with automated build workflows and persistent environmental variables)
+| Layer | Choices |
+| --- | --- |
+| Frontend | React 19 (hooks), Axios with auth + 401 interceptors, plain CSS with design tokens, responsive down to 360px |
+| Backend | Spring Boot 4.1, Spring Security 7 (stateless JWT), Spring Data JPA / Hibernate, Bean Validation, Actuator |
+| Auth | BCrypt passwords, HS256 JWT, single active session per account (a new login revokes older tokens), server-side logout, brute-force lockout |
+| Errors | Every API error is RFC 9457 `application/problem+json` with a stable `code` field |
+| Data | PostgreSQL. Question bank lives in `backend/src/main/resources/seed/questions.psv` and is seeded idempotently |
+| Tests | Backend: JUnit 5 + MockMvc on in-memory H2. Frontend: Jest + React Testing Library |
 
 ---
 
-## Key Engineering Achievements
+## Running locally
 
-*  **Dynamic Syllabus Tracker:** Built a state-driven metrics engine tracking individual problem mastery percentages segmented across *Easy*, *Medium*, and *Hard* difficulties.
-*  **Stateless Identity Regulation:** Implemented an enterprise-grade authentication protocol using a custom `AuthTokenFilter`. Tokens are strictly validated on every endpoint request, ensuring secure data retrieval.
-*  **Granular CORS Management:** Engineered custom Cross-Origin Resource Sharing filters within the Java security configuration to safely enable and secure cross-domain preflight `OPTIONS` blocks.
-*  **Strict Separation of Concerns:** Organized the application into decoupled data presentation, business execution, and database persistence layers to simplify feature scaling.
+### Backend
+Prerequisites: Java 17+, a local PostgreSQL with a database named `interview_prep_db`.
 
----
-
-## RESTful API Blueprint
-
-| HTTP Method | API Endpoint | Operational Action | Access Token Required |
-| :--- | :--- | :--- | :--- |
-| `POST` | `/api/auth/register` | Provisions a new secure account (BCrypt protected) | ❌ No |
-| `POST` | `/api/auth/login` | Validates credentials and generates a stateless JWT | ❌ No |
-| `GET` | `/api/questions` | Pulls the curated technical problem tracking list | ✅ Yes |
-| `GET` | `/api/my-status` | Generates active tracking metrics for the user dashboard | ✅ Yes |
-
----
-
-## Local Development Environment Setup
-
-### 1. Prerequisites
-* **Java SDK:** Version 17 or higher
-* **Runtime:** Node.js (v18+)
-* **Database Engine:** Local instance of PostgreSQL
-
-### 2. Backend Property Configuration
-Set up your local configuration by adding the following properties to your application resource environment:
-```properties
-spring.datasource.url=jdbc:postgresql://localhost:5432/interview_prep_db
-spring.datasource.username=your_postgres_username
-spring.datasource.password=your_postgres_password
-
-prepapi.app.jwtSecret=your_secure_signing_secret_key_string
-3. Execution Execution Controls
-Bash
-# Spin up the React UI Client
-cd frontend
-npm install
-npm start
-
-# Spin up the Spring Boot API Service
+```bash
 cd backend
-mvn clean install
-mvn spring-boot:run
+# uses src/main/resources/application-local.properties (dev JWT secret, SQL logging)
+DB_PASS=<your-postgres-password> SPRING_PROFILES_ACTIVE=local ./mvnw spring-boot:run
+```
+The API starts on http://localhost:8080 and seeds the 100 questions on first boot.
+With the `local` profile, the user named `admin` gets admin rights (can `POST /api/questions`).
+
+Run the tests (no Postgres needed, they use in-memory H2):
+```bash
+./mvnw verify
+```
+
+### Frontend
+Prerequisites: Node 18+.
+
+```bash
+cd frontend
+cp .env.example .env.local      # REACT_APP_API_URL=http://localhost:8080
+npm install
+npm start                       # http://localhost:3000
+npm run test:ci                 # run tests once
+```
+
+---
+
+## Configuration
+
+### Backend environment variables (Render → Environment)
+
+| Variable | Required | Default | Purpose |
+| --- | --- | --- | --- |
+| `JWT_SECRET` | **yes** | – | Random string, ≥ 32 chars (`openssl rand -base64 48`). App refuses to start without it. |
+| `DB_HOST`, `DB_NAME`, `DB_USER` | yes | `localhost`, `interview_prep_db`, `postgres` | Postgres connection |
+| `DB_PASS` | **yes** | – | Postgres password (no fallback on purpose) |
+| `DB_PORT` | no | `5432` | |
+| `CORS_ALLOWED_ORIGINS` | no | `http://localhost:3000,https://interview-preparation-platform-roan.vercel.app` | Comma-separated frontend origins. Add Vercel preview URLs here if you want previews to work. |
+| `ADMIN_USERNAMES` | no | empty | Comma-separated usernames allowed to add questions via the API |
+| `ALLOWED_EMAIL_DOMAINS` | no | empty (any) | e.g. `gmail.com` to restrict sign-ups to Gmail, as v1 did |
+| `JWT_EXPIRATION_MS` | no | `86400000` (24h) | Token lifetime |
+| `DDL_AUTO` | no | `update` | Hibernate schema mode |
+
+### Frontend environment variables (Vercel → Settings → Environment Variables)
+
+| Variable | Purpose |
+| --- | --- |
+| `REACT_APP_API_URL` | Backend base URL, e.g. `https://freakcode-backend.onrender.com` |
+
+---
+
+## Deploying (Vercel + Render from this GitHub repo)
+
+Both services build from the `main` branch. After the move to `backend/` + `frontend/`, update:
+
+**Vercel** → Project → Settings → Build & Deployment
+- Root Directory: `frontend`
+- Framework preset: Create React App (build `npm run build`, output `build`)
+
+**Render** → `freakcode-backend` → Settings → Build & Deploy
+- Root Directory: `backend`
+- Dockerfile Path: `./Dockerfile` (relative to the root directory)
+- Health Check Path: `/actuator/health`
+- Environment: make sure `JWT_SECRET` and `DB_PASS` are set (see table above)
+
+Existing users, questions and progress are kept. The new code uses the same tables and column names, and the seeder only inserts questions whose URL isn't in the database yet.
+
+---
+
+## REST API
+
+All endpoints except register/login/logout/health need `Authorization: Bearer <token>`.
+
+| Method | Endpoint | Description |
+| --- | --- | --- |
+| `POST` | `/api/auth/register` | Create an account `{username, email, password}` → `201` |
+| `POST` | `/api/auth/login` | `{username, password}` → `{token, username, expiresAt}`. 5 failed attempts per username+IP → `429` for 15 min |
+| `POST` | `/api/auth/logout` | Revokes the current token server-side → `204` |
+| `GET` | `/api/users/me` | Current user's profile |
+| `GET` | `/api/questions` | All questions. Optional filters: `?company=Google&difficulty=HARD&category=Trees` |
+| `POST` | `/api/questions` | Add a question (**admin only**) |
+| `GET` | `/api/progress/my-status` | `{ "<questionId>": { "solved": true, "revised": false } }` |
+| `PUT` | `/api/progress/{questionId}` | Set `{solved, revised}`. Both `false` removes the record |
+| `POST` | `/api/progress/toggle` | Legacy form of the above (`{questionId, solved, revised}`) |
+| `GET` | `/actuator/health` | Liveness for Render |
+
+Error example:
+```json
+{ "type": "about:blank", "title": "Unauthorized", "status": 401,
+  "detail": "You were signed out because this account logged in somewhere else.", "code": "SESSION_REVOKED" }
+```
+
+## Adding questions
+
+Append a line to `backend/src/main/resources/seed/questions.psv`:
+```
+Trees | MEDIUM | Binary Tree Right Side View | https://leetcode.com/problems/binary-tree-right-side-view/ | Amazon, Meta | Return the values visible from the right side.
+```
+Deploy, and it appears for everyone. No SQL needed, and existing progress is untouched.

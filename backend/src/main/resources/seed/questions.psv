@@ -1,0 +1,123 @@
+# FreakCode question bank — one question per line.
+# Format: category | difficulty (EASY/MEDIUM/HARD) | title | problem URL | companies (comma-separated) | description
+# The seeder inserts any line whose URL is not already in the database, so you can append safely.
+
+# --- Arrays ---
+Arrays | EASY | Two Sum | https://leetcode.com/problems/two-sum/ | Google, Amazon | Find indices of two numbers that add up to a target.
+Arrays | EASY | Best Time to Buy and Sell Stock | https://leetcode.com/problems/best-time-to-buy-and-sell-stock/ | Google, Microsoft | Maximize profit by choosing a single day to buy and a different day to sell.
+Arrays | EASY | Contains Duplicate | https://leetcode.com/problems/contains-duplicate/ | Apple, Adobe | Return true if any value appears at least twice in the array.
+Arrays | MEDIUM | Product of Array Except Self | https://leetcode.com/problems/product-of-array-except-self/ | Amazon, Facebook | Return an array where output[i] is equal to product of all elements except nums[i].
+Arrays | MEDIUM | Maximum Subarray | https://leetcode.com/problems/maximum-subarray/ | Google, PhonePe | Find the contiguous subarray with the largest sum (Kadane's Algorithm).
+Arrays | MEDIUM | 3Sum | https://leetcode.com/problems/3sum/ | Amazon, Microsoft | Find all unique triplets in the array that sum up to zero.
+Arrays | MEDIUM | Merge Intervals | https://leetcode.com/problems/merge-intervals/ | Google, Razorpay | Merge all overlapping intervals.
+Arrays | MEDIUM | Container With Most Water | https://leetcode.com/problems/container-with-most-water/ | Google, Apple | Find two lines that together with the x-axis form a container containing the most water.
+Arrays | HARD | Trapping Rain Water | https://leetcode.com/problems/trapping-rain-water/ | Google, Amazon | Compute how much water it can trap after raining.
+Arrays | MEDIUM | Find the Duplicate Number | https://leetcode.com/problems/find-the-duplicate-number/ | Microsoft, Adobe | Find the duplicate number in an array of n+1 integers where each integer is between 1 and n.
+
+# --- Binary Search ---
+Binary Search | EASY | Binary Search | https://leetcode.com/problems/binary-search/ | Google, Apple | Implement standard binary search on a sorted array.
+Binary Search | MEDIUM | Search in Rotated Sorted Array | https://leetcode.com/problems/search-in-rotated-sorted-array/ | Google, Microsoft | Find an element in a rotated sorted array.
+Binary Search | MEDIUM | First and Last Position in Sorted Array | https://leetcode.com/problems/find-first-and-last-position-of-element-in-sorted-array/ | Amazon, Adobe | Find starting and ending position of a given target value.
+Binary Search | MEDIUM | Find Minimum in Rotated Sorted Array | https://leetcode.com/problems/find-minimum-in-rotated-sorted-array/ | Amazon, PhonePe | Find the minimum element in a rotated sorted array.
+Binary Search | MEDIUM | Peak Index in a Mountain Array | https://leetcode.com/problems/peak-index-in-a-mountain-array/ | Google, Facebook | Find the peak index in a mountain array.
+Binary Search | MEDIUM | Search a 2D Matrix | https://leetcode.com/problems/search-a-2d-matrix/ | Microsoft, Razorpay | Search for a value in an m x n matrix with sorted rows and columns.
+Binary Search | MEDIUM | Koko Eating Bananas | https://leetcode.com/problems/koko-eating-bananas/ | Google, Amazon | Find the minimum integer speed K to eat all bananas within H hours.
+Binary Search | HARD | Median of Two Sorted Arrays | https://leetcode.com/problems/median-of-two-sorted-arrays/ | Google, Apple | Find the median of two sorted arrays in O(log(m+n)) time.
+Binary Search | MEDIUM | Capacity To Ship Packages Within D Days | https://leetcode.com/problems/capacity-to-ship-packages-within-d-days/ | Amazon, Google | Find the least weight capacity of a boat to ship packages within D days.
+Binary Search | MEDIUM | Find Peak Element | https://leetcode.com/problems/find-peak-element/ | Facebook, Microsoft | Find a peak element that is strictly greater than its neighbors.
+
+# --- Bit Manipulation ---
+Bit Manipulation | EASY | Number of 1 Bits | https://leetcode.com/problems/number-of-1-bits/ | Apple, Amazon | Return the number of '1' bits an unsigned integer has.
+Bit Manipulation | EASY | Counting Bits | https://leetcode.com/problems/counting-bits/ | Microsoft, Adobe | Return an array of the number of 1s for each number from 0 to n.
+Bit Manipulation | EASY | Single Number | https://leetcode.com/problems/single-number/ | Google, Amazon | Find the element that appears only once in an array where others appear twice.
+Bit Manipulation | EASY | Missing Number | https://leetcode.com/problems/missing-number/ | Apple, PhonePe | Find the only number missing from the range [0, n].
+Bit Manipulation | EASY | Reverse Bits | https://leetcode.com/problems/reverse-bits/ | Google, Microsoft | Reverse bits of a given 32-bit unsigned integer.
+Bit Manipulation | MEDIUM | Sum of Two Integers | https://leetcode.com/problems/sum-of-two-integers/ | Facebook, Amazon | Sum two integers without using + or - operators.
+Bit Manipulation | MEDIUM | Bitwise AND of Numbers Range | https://leetcode.com/problems/bitwise-and-of-numbers-range/ | Google, Adobe | Return the bitwise AND of all numbers in a range inclusive.
+Bit Manipulation | MEDIUM | Single Number II | https://leetcode.com/problems/single-number-ii/ | Google, Razorpay | Find the element that appears once where all others appear three times.
+Bit Manipulation | MEDIUM | UTF-8 Validation | https://leetcode.com/problems/utf-8-validation/ | Google, Amazon | Determine whether a given array of integers represents valid UTF-8 data.
+Bit Manipulation | HARD | Reverse Pairs | https://leetcode.com/problems/reverse-pairs/ | Google, Microsoft | Count important reverse pairs in an array.
+
+# --- Linked Lists ---
+Linked Lists | EASY | Reverse a Linked List | https://leetcode.com/problems/reverse-linked-list/ | Microsoft, PhonePe | Invert the sequential pointers of a singly linked list.
+Linked Lists | EASY | Linked List Cycle | https://leetcode.com/problems/linked-list-cycle/ | Google, Amazon | Determine if a linked list contains a cycle loop.
+Linked Lists | EASY | Merge Two Sorted Lists | https://leetcode.com/problems/merge-two-sorted-lists/ | Apple, Adobe | Merge two sorted linked lists sequentially into one.
+Linked Lists | MEDIUM | Remove Nth Node From End of List | https://leetcode.com/problems/remove-nth-node-from-end-of-list/ | Amazon, Facebook | Remove the nth node from the end of a list and return its head.
+Linked Lists | MEDIUM | Reorder List | https://leetcode.com/problems/reorder-list/ | Google, Microsoft | Reorder a list to alternate between start and end nodes.
+Linked Lists | MEDIUM | Linked List Cycle II | https://leetcode.com/problems/linked-list-cycle-ii/ | Google, Razorpay | Find the exact node where the cycle loop begins.
+Linked Lists | MEDIUM | Add Two Numbers | https://leetcode.com/problems/add-two-numbers/ | Amazon, Microsoft | Add two numbers represented by linked lists in reverse order.
+Linked Lists | HARD | Merge k Sorted Lists | https://leetcode.com/problems/merge-k-sorted-lists/ | Google, Facebook | Merge k sorted linked lists into one single sorted list.
+Linked Lists | HARD | Reverse Nodes in k-Group | https://leetcode.com/problems/reverse-nodes-in-k-group/ | Microsoft, Amazon | Reverse nodes of a linked list k at a time.
+Linked Lists | MEDIUM | Copy List with Random Pointer | https://leetcode.com/problems/copy-list-with-random-pointer/ | Google, Adobe | Construct a deep copy of a list containing a random pointer field.
+
+# --- Stacks & Queues ---
+Stacks & Queues | EASY | Valid Parentheses | https://leetcode.com/problems/valid-parentheses/ | Google, Razorpay | Determine if bracket input strings are closed in correct structural order.
+Stacks & Queues | EASY | Min Stack | https://leetcode.com/problems/min-stack/ | Amazon, Microsoft | Design a stack that supports push, pop, top, and retrieving the minimum element in O(1) time.
+Stacks & Queues | MEDIUM | Evaluate Reverse Polish Notation | https://leetcode.com/problems/evaluate-reverse-polish-notation/ | Google, PhonePe | Evaluate the value of an arithmetic expression in Reverse Polish Notation.
+Stacks & Queues | MEDIUM | Generate Parentheses | https://leetcode.com/problems/generate-parentheses/ | Amazon, Facebook | Generate all combinations of well-formed parentheses for n pairs.
+Stacks & Queues | MEDIUM | Daily Temperatures | https://leetcode.com/problems/daily-temperatures/ | Google, Apple | Return an array of the number of days you have to wait for a warmer temperature.
+Stacks & Queues | MEDIUM | Car Fleet | https://leetcode.com/problems/car-fleet/ | Google, Amazon | Determine how many car fleets will arrive at the destination destination.
+Stacks & Queues | HARD | Largest Rectangle in Histogram | https://leetcode.com/problems/largest-rectangle-in-histogram/ | Google, Microsoft | Find the area of the largest rectangle in a histogram grid.
+Stacks & Queues | HARD | Sliding Window Maximum | https://leetcode.com/problems/sliding-window-maximum/ | Amazon, Google | Return the max element inside a sliding window running across an array.
+Stacks & Queues | EASY | Implement Queue using Stacks | https://leetcode.com/problems/implement-queue-using-stacks/ | Microsoft, Adobe | Implement a first-in first-out queue using only standard stacks.
+Stacks & Queues | MEDIUM | Online Stock Span | https://leetcode.com/problems/online-stock-span/ | PhonePe, Razorpay | Calculate the span of a stock's price for the current day based on preceding records.
+
+# --- Recursion & Backtracking ---
+Recursion & Backtracking | MEDIUM | Subsets | https://leetcode.com/problems/subsets/ | Amazon, Facebook | Return all possible subsets (the power set) of a unique integer array.
+Recursion & Backtracking | MEDIUM | Combination Sum | https://leetcode.com/problems/combination-sum/ | Google, Microsoft | Return a list of all unique combinations where the chosen numbers sum to a target.
+Recursion & Backtracking | MEDIUM | Permutations | https://leetcode.com/problems/permutations/ | Google, Adobe | Return all possible permutations of an array of distinct integers.
+Recursion & Backtracking | MEDIUM | Subsets II | https://leetcode.com/problems/subsets-ii/ | Amazon, PhonePe | Return all possible subsets from an array containing duplicate elements.
+Recursion & Backtracking | MEDIUM | Combination Sum II | https://leetcode.com/problems/combination-sum-ii/ | Google, Razorpay | Find all unique combinations in a collection where numbers sum to a target.
+Recursion & Backtracking | MEDIUM | Word Search | https://leetcode.com/problems/word-search/ | Amazon, Apple | Determine if a word exists sequentially inside a 2D character board grid.
+Recursion & Backtracking | MEDIUM | Palindrome Partitioning | https://leetcode.com/problems/palindrome-partitioning/ | Google, Facebook | Partition a string such that every substring of the partition is a palindrome.
+Recursion & Backtracking | MEDIUM | Letter Combinations of a Phone Number | https://leetcode.com/problems/letter-combinations-of-a-phone-number/ | Microsoft, Amazon | Return all possible letter combinations that a digit sequence string could represent.
+Recursion & Backtracking | HARD | N-Queens | https://leetcode.com/problems/n-queens/ | Google, Microsoft | Place n queens on an n x n chessboard such that no two queens attack each other.
+Recursion & Backtracking | HARD | Sudoku Solver | https://leetcode.com/problems/sudoku-solver/ | Google, Amazon | Write a program to solve a Sudoku puzzle by filling the empty cells.
+
+# --- Greedy Algorithms ---
+Greedy Algorithms | MEDIUM | Jump Game | https://leetcode.com/problems/jump-game/ | Google, Apple | Determine if you can reach the final index given maximum step limits.
+Greedy Algorithms | MEDIUM | Jump Game II | https://leetcode.com/problems/jump-game-ii/ | Google, Amazon | Find the minimum number of jumps to reach the final index.
+Greedy Algorithms | MEDIUM | Gas Station | https://leetcode.com/problems/gas-station/ | Amazon, Microsoft | Find the starting gas station index to travel clockwise around a circuit once.
+Greedy Algorithms | MEDIUM | Hand of Straights | https://leetcode.com/problems/hand-of-straights/ | Google, Adobe | Determine if cards can be rearranged into groups of consecutive consecutive numbers.
+Greedy Algorithms | MEDIUM | Merge Triplets to Form Target | https://leetcode.com/problems/merge-triplets-to-form-target/ | Amazon, PhonePe | Determine if a target triplet can be formed by merging operation states.
+Greedy Algorithms | MEDIUM | Partition Labels | https://leetcode.com/problems/partition-labels/ | Google, Facebook | Partition a string into as many parts as possible so that each letter appears in at most one part.
+Greedy Algorithms | MEDIUM | Valid Parenthesis String | https://leetcode.com/problems/valid-parenthesis-string/ | Google, Razorpay | Determine if a bracket string containing asterisks wildcards is structurally valid.
+Greedy Algorithms | HARD | Candy | https://leetcode.com/problems/candy/ | Google, Microsoft | Allocate candies to children based on rating scores minimizing the total count.
+Greedy Algorithms | EASY | Assign Cookies | https://leetcode.com/problems/assign-cookies/ | Apple, Amazon | Maximize cookie allocation to children based on desire scores.
+Greedy Algorithms | MEDIUM | Task Scheduler | https://leetcode.com/problems/task-scheduler/ | Facebook, Microsoft | Find the least number of CPU intervals needed to complete all tasks given cooling cycles.
+
+# --- Trees ---
+Trees | EASY | Maximum Depth of Binary Tree | https://leetcode.com/problems/maximum-depth-of-binary-tree/ | Amazon, Microsoft | Compute the total node path distance along the longest path from root to leaf.
+Trees | EASY | Invert Binary Tree | https://leetcode.com/problems/invert-binary-tree/ | Google, Apple | Invert a binary tree so that left and right children are swapped recursively.
+Trees | EASY | Same Tree | https://leetcode.com/problems/same-tree/ | Microsoft, Adobe | Check if two binary trees are structurally identical and have matching node values.
+Trees | EASY | Subtree of Another Tree | https://leetcode.com/problems/subtree-of-another-tree/ | Amazon, Facebook | Determine if a tree contains a subtree matching a separate target structure.
+Trees | EASY | Lowest Common Ancestor of a BST | https://leetcode.com/problems/lowest-common-ancestor-of-a-binary-search-tree/ | Google, PhonePe | Find the lowest common ancestor node of two given nodes in a BST.
+Trees | MEDIUM | Binary Tree Level Order Traversal | https://leetcode.com/problems/binary-tree-level-order-traversal/ | Google, Amazon | Return the level order traversal of its nodes' values as groups.
+Trees | MEDIUM | Binary Tree Right Side View | https://leetcode.com/problems/binary-tree-right-side-view/ | Amazon, Facebook | Return the values of the nodes visible when looking from the right side.
+Trees | MEDIUM | Count Good Nodes in Binary Tree | https://leetcode.com/problems/count-good-nodes-in-binary-tree/ | Microsoft, Razorpay | Count nodes where value is greater than or equal to max seen from root.
+Trees | MEDIUM | Validate Binary Search Tree | https://leetcode.com/problems/validate-binary-search-tree/ | Google, Microsoft | Determine if a binary tree is a structurally valid Binary Search Tree.
+Trees | HARD | Binary Tree Maximum Path Sum | https://leetcode.com/problems/binary-tree-maximum-path-sum/ | Google, Amazon | Find the maximum path sum between any two nodes in a tree sequence.
+
+# --- Graphs ---
+Graphs | MEDIUM | Number of Islands | https://leetcode.com/problems/number-of-islands/ | Google, Razorpay | Traverse a 2D grid mapping clusters of '1's (land) surrounded by water.
+Graphs | MEDIUM | Clone Graph | https://leetcode.com/problems/clone-graph/ | Google, Facebook | Construct a deep copy clone of a connected undirected graph structure.
+Graphs | MEDIUM | Max Area of Island | https://leetcode.com/problems/max-area-of-island/ | Amazon, Microsoft | Find the maximum area among islands mapped inside a 2D grid matrix.
+Graphs | MEDIUM | Pacific Atlantic Water Flow | https://leetcode.com/problems/pacific-atlantic-water-flow/ | Google, Amazon | Find grid coordinate nodes that can shed rainwater to both oceans.
+Graphs | MEDIUM | Surrounded Regions | https://leetcode.com/problems/surrounded-regions/ | Microsoft, Adobe | Capture surrounded regions by flipping all unescaped inner boundary 'O's.
+Graphs | MEDIUM | Rotting Oranges | https://leetcode.com/problems/rotting-oranges/ | Amazon, PhonePe | Find the minimum minutes elapsed until no fresh orange orange remains.
+Graphs | MEDIUM | Course Schedule | https://leetcode.com/problems/course-schedule/ | Google, Amazon | Determine if it's possible to finish all courses given prerequisite dependencies.
+Graphs | MEDIUM | Course Schedule II | https://leetcode.com/problems/course-schedule-ii/ | Google, Facebook | Return the exact ordering order of courses required to complete study streams.
+Graphs | MEDIUM | Redundant Connection | https://leetcode.com/problems/redundant-connection/ | Amazon, Microsoft | Find an edge that can be removed so the resulting graph is a cycle-free tree.
+Graphs | HARD | Word Ladder | https://leetcode.com/problems/word-ladder/ | Google, Amazon | Find the length of shortest transformation sequence converting start word to end word.
+
+# --- Dynamic Programming ---
+Dynamic Programming | MEDIUM | Longest Common Subsequence | https://leetcode.com/problems/longest-common-subsequence/ | PhonePe, Adobe | Compute the longest length subsequential string match present between two inputs.
+Dynamic Programming | EASY | Climbing Stairs | https://leetcode.com/problems/climbing-stairs/ | Google, Apple | Find how many distinct ways you can climb to the top of n steps.
+Dynamic Programming | EASY | Min Cost Climbing Stairs | https://leetcode.com/problems/min-cost-climbing-stairs/ | Amazon, Microsoft | Find the minimum cost to reach the top floor from step weights.
+Dynamic Programming | MEDIUM | House Robber | https://leetcode.com/problems/house-robber/ | Google, Facebook | Maximize stolen treasure from houses without alerting adjacent alarms.
+Dynamic Programming | MEDIUM | House Robber II | https://leetcode.com/problems/house-robber-ii/ | Microsoft, Amazon | Maximize stolen wealth from houses arranged in a circular perimeter layout.
+Dynamic Programming | MEDIUM | Longest Palindromic Substring | https://leetcode.com/problems/longest-palindromic-substring/ | Google, Amazon | Find the longest palindromic substring inside a string input sequence.
+Dynamic Programming | MEDIUM | Decode Ways | https://leetcode.com/problems/decode-ways/ | Amazon, Adobe | Find the total number of ways to decode an encoded message string.
+Dynamic Programming | MEDIUM | Coin Change | https://leetcode.com/problems/coin-change/ | Google, Razorpay | Compute the fewest number of coins needed to make up a specific target sum.
+Dynamic Programming | MEDIUM | Maximum Product Subarray | https://leetcode.com/problems/maximum-product-subarray/ | Amazon, Facebook | Find a contiguous subarray that has the largest multiplication product value.
+Dynamic Programming | MEDIUM | Longest Increasing Subsequence | https://leetcode.com/problems/longest-increasing-subsequence/ | Google, Microsoft | Find the length of the longest strictly increasing subsequence loop.
