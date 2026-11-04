@@ -334,6 +334,10 @@ const Login = ({ onLoginSuccess, notice = '' }) => {
                 {isTabbed && (
                     <GoogleButton onCredential={handleGoogle} text={mode === 'register' ? 'signup_with' : 'continue_with'} />
                 )}
+
+                <p className="auth-legal">
+                    <a href="/privacy.html">Privacy</a> · <a href="/terms.html">Terms</a>
+                </p>
             </div>
         </div>
     );
