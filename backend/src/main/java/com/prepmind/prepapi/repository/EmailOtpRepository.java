@@ -22,4 +22,8 @@ public interface EmailOtpRepository extends JpaRepository<EmailOtp, Long> {
     @Query("UPDATE EmailOtp o SET o.consumedAt = :now "
             + "WHERE o.user.id = :userId AND o.purpose = :purpose AND o.consumedAt IS NULL")
     int consumeAllActive(@Param("userId") Long userId, @Param("purpose") OtpPurpose purpose, @Param("now") Instant now);
+
+    @Modifying
+    @Query("DELETE FROM EmailOtp o WHERE o.user.id = :userId")
+    int deleteByUserId(@Param("userId") Long userId);
 }

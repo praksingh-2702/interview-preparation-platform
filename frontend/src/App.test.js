@@ -100,8 +100,9 @@ test('toggling a checkbox saves with PUT and rolls back on failure', async () =>
     await userEvent.click(solved);
     expect(api.put).toHaveBeenCalledWith('/api/progress/1', { solved: true, revised: false });
     await waitFor(() => expect(solved).toBeChecked());
-    // Checkboxes are disabled while a save is in flight; wait for it to finish.
-    await waitFor(() => expect(within(row).getByLabelText('Revised')).not.toBeDisabled());
+    // Checkboxes stay clickable while saving; let this save settle before the next one.
+    await waitFor(() => expect(api.put).toHaveBeenCalledTimes(1));
+    await act(async () => {});
 
     api.put.mockRejectedValueOnce({ response: { status: 500, data: { detail: 'Server exploded' } } });
     await userEvent.click(within(row).getByLabelText('Revised'));
@@ -186,19 +187,53 @@ test('notes can be added from a problem row', async () => {
     expect(screen.getByRole('button', { name: 'Edit notes for Two Sum' })).toBeInTheDocument();
 });
 
-test('activity panel shows streaks from the stats endpoint', async () => {
+test('activity panel is built from ticked rows', async () => {
     loggedIn();
+    const at = (daysAgo) => new Date(Date.now() - daysAgo * 86400000).toISOString();
     mockGets({
-        stats: {
-            activity: [{ date: localDateKey(new Date()), count: 3 }],
-            currentStreak: 4, longestStreak: 9, activeDays: 20, dueForRevision: 0, timezone: 'Asia/Kolkata',
+        progress: {
+            1: { solved: true, revised: false, solvedAt: at(0) },
+            2: { solved: true, revised: true, solvedAt: at(1) },
+            3: { solved: false, revised: true, solvedAt: null }, // Revised alone doesn't count
         },
     });
     render(<App />);
     const panel = await screen.findByRole('region', { name: 'Activity' });
-    expect(within(panel).getByText('4')).toBeInTheDocument();
-    expect(within(panel).getByText('9')).toBeInTheDocument();
-    expect(within(panel).getByText('3 questions completed in the last year')).toBeInTheDocument();
+    expect(within(panel).getByText('2 questions completed in the last year')).toBeInTheDocument();
+    const streak = within(panel).getByText(/day streak/).closest('.streak');
+    expect(streak).toHaveTextContent('2');
+    expect(api.get).not.toHaveBeenCalledWith('/api/stats', expect.anything());
+});
+
+test('tick then untick updates the heatmap instantly, and rapid clicks only save the final state', async () => {
+    loggedIn();
+    mockGets();
+    let resolveFirst;
+    api.put
+        .mockImplementationOnce(() => new Promise((r) => { resolveFirst = r; }))
+        .mockResolvedValue({ data: { solved: false, revised: false } });
+
+    render(<App />);
+    const row = (await screen.findByText('Two Sum')).closest('li');
+    const panel = screen.getByRole('region', { name: 'Activity' });
+    const solved = within(row).getByLabelText('Solved');
+
+    await userEvent.click(solved);                   // tick: counted right away
+    expect(solved).toBeChecked();
+    expect(within(panel).getByText('1 question completed in the last year')).toBeInTheDocument();
+
+    await userEvent.click(solved);                   // untick while the first save is still running
+    await userEvent.click(solved);                   // tick
+    await userEvent.click(solved);                   // untick: this is the state that must win
+    expect(solved).not.toBeChecked();
+    expect(within(panel).getByText('0 questions completed in the last year')).toBeInTheDocument();
+    expect(api.put).toHaveBeenCalledTimes(1);        // nothing queued up behind the running save
+
+    await act(async () => { resolveFirst({ data: { solved: true, revised: false, solvedAt: new Date().toISOString() } }); });
+    await waitFor(() => expect(api.put).toHaveBeenCalledTimes(2));
+    expect(api.put).toHaveBeenLastCalledWith('/api/progress/1', { solved: false, revised: false });
+    await waitFor(() => expect(within(panel).getByText('0 questions completed in the last year')).toBeInTheDocument());
+    expect(solved).not.toBeChecked();
 });
 
 test('heatmap grid ends today and buckets counts into levels', () => {
@@ -426,4 +461,42 @@ test('admins get the Admin panel with an overview', async () => {
     expect(await screen.findByText('Active in the last 7 days')).toBeInTheDocument();
     expect(screen.getByText('12')).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'Users' })).toBeInTheDocument();
+});
+
+test('admins can remove unverified accounts and delete a user', async () => {
+    loggedIn();
+    let users = [
+        { id: 1, username: 'om', email: 'om@x.com', role: 'ADMIN', verified: true, google: false, showOnLeaderboard: true, createdAt: null, completed: 1, points: 1 },
+        { id: 2, username: 'ghost', email: 'g@x.com', role: 'USER', verified: false, google: false, showOnLeaderboard: true, createdAt: null, completed: 0, points: 0 },
+        { id: 3, username: 'real', email: 'r@x.com', role: 'USER', verified: true, google: false, showOnLeaderboard: true, createdAt: null, completed: 2, points: 3 },
+    ];
+    routeGets({
+        '/api/users/me': { username: 'om', role: 'ADMIN', needsUsername: false },
+        '/api/admin/overview': { totalUsers: 3, verifiedUsers: 2, googleUsers: 0, newUsersLast7Days: 0, activeUsersLast7Days: 0, usersByRole: {}, questionsBySection: {} },
+        '/api/admin/users': () => users,
+    });
+    api.post.mockImplementation((url) => {
+        if (url === '/api/admin/users/remove-unverified') {
+            users = users.filter((u) => u.verified);
+            return Promise.resolve({ data: { removed: 1 } });
+        }
+        return Promise.resolve({ data: {} });
+    });
+    api.delete.mockResolvedValue({ status: 204 });
+
+    render(<App />);
+    await userEvent.click(await screen.findByRole('button', { name: 'Admin' }));
+    await userEvent.click(screen.getByRole('tab', { name: 'Users' }));
+    expect(await screen.findByText('@ghost')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Delete @om' })).not.toBeInTheDocument(); // not yourself
+
+    await userEvent.click(screen.getByRole('button', { name: 'Remove unverified (1)' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Remove' }));
+    expect(await screen.findByText('Removed 1 unverified account.')).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByText('@ghost')).not.toBeInTheDocument());
+
+    await userEvent.click(screen.getByRole('button', { name: 'Delete @real' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Delete' }));
+    expect(api.delete).toHaveBeenCalledWith('/api/admin/users/3');
+    await waitFor(() => expect(screen.queryByText('@real')).not.toBeInTheDocument());
 });

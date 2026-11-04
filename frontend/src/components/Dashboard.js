@@ -5,7 +5,8 @@ import {
     statusFilters,
 } from '../utils/stats';
 import { loadSection, saveSection, SECTION_BY_ID, SECTIONS, sectionOf } from '../utils/sections';
-import { browserTimeZone, isDue, parseTime } from '../utils/time';
+import { computeActivity } from '../utils/activity';
+import { isDue, parseTime } from '../utils/time';
 import ActivityPanel from './ActivityPanel';
 import NotesModal from './NotesModal';
 import RevisionQueue from './RevisionQueue';
@@ -20,7 +21,6 @@ const Dashboard = ({ reloadKey = 0 }) => {
     const [questions, setQuestions] = useState([]);
     const [progressMap, setProgressMap] = useState({});
     const [notes, setNotes] = useState({});
-    const [activity, setActivity] = useState(null);
     const [loading, setLoading] = useState(true);
     const [loadError, setLoadError] = useState('');
     const [toast, setToast] = useState('');
@@ -39,15 +39,10 @@ const Dashboard = ({ reloadKey = 0 }) => {
     // Latest progress, readable from the stable callbacks without re-rendering every row.
     const progressRef = useRef(progressMap);
     progressRef.current = progressMap;
-
-    const refreshStats = useCallback(async () => {
-        try {
-            const { data } = await api.get('/api/stats', { params: { tz: browserTimeZone() } });
-            setActivity(data);
-        } catch {
-            // Optional panel: the rest of the dashboard works without it.
-        }
-    }, []);
+    // Per question: the state the user wants, the last state the server confirmed, and whether a save is running.
+    const desiredRef = useRef({});
+    const confirmedRef = useRef({});
+    const inFlightRef = useRef({});
 
     // Questions + progress are required; notes and stats are optional extras.
     const load = useCallback(async () => {
@@ -75,8 +70,7 @@ const Dashboard = ({ reloadKey = 0 }) => {
         api.get('/api/notes')
             .then(({ data }) => setNotes(data && typeof data === 'object' ? data : {}))
             .catch(() => {});
-        refreshStats();
-    }, [refreshStats]);
+    }, []);
 
     useEffect(() => { load(); }, [load, reloadKey]);
 
@@ -92,33 +86,70 @@ const Dashboard = ({ reloadKey = 0 }) => {
         return () => clearTimeout(t);
     }, [toast]);
 
-    const handleToggleProgress = useCallback(async (questionId, field) => {
-        const key = String(questionId);
-        const previous = progressRef.current[key] || { solved: false, revised: false };
-        const next = { solved: !!previous.solved, revised: !!previous.revised, [field]: !previous[field] };
-        // Optimistic update; the checkbox stays disabled until the server answers, so no racing requests.
-        setProgressMap((m) => ({ ...m, [key]: { ...previous, ...next } }));
-        setSaving((s) => ({ ...s, [key]: true }));
+    const setRow = useCallback((key, status) => {
+        progressRef.current = { ...progressRef.current, [key]: status }; // visible to an immediate next click
+        setProgressMap((m) => ({ ...m, [key]: status }));
+    }, []);
 
+    /**
+     * Sends the latest wanted state for one question. Clicks made while a save is running only update
+     * desiredRef; when the save returns, the newest state is sent (if it differs). So rapid
+     * tick / untick never queues a pile of requests, and the last click always wins.
+     */
+    const flushProgress = useCallback(async (questionId) => {
+        const key = String(questionId);
+        inFlightRef.current[key] = true;
+        setSaving((s) => ({ ...s, [key]: true }));
         try {
-            const res = await api.put(`/api/progress/${questionId}`, next);
-            if (res?.data && typeof res.data === 'object') {
-                setProgressMap((m) => ({ ...m, [key]: { ...m[key], ...res.data } }));
+            for (;;) {
+                const want = desiredRef.current[key];
+                const res = await api.put(`/api/progress/${questionId}`, want);
+                const server = res?.data && typeof res.data === 'object' ? res.data : want;
+                confirmedRef.current[key] = { ...want, ...server };
+                const latest = desiredRef.current[key];
+                if (latest.solved === want.solved && latest.revised === want.revised) {
+                    // Settled: adopt the server's timestamps and revision schedule.
+                    setRow(key, { ...progressRef.current[key], ...server });
+                    break;
+                }
             }
-            refreshStats();
         } catch (err) {
             if (err.response?.status !== 401) {
-                setProgressMap((m) => ({ ...m, [key]: previous }));
+                setRow(key, confirmedRef.current[key]);
                 setToast(getErrorMessage(err, "Couldn't save that change. Please try again."));
             }
         } finally {
+            delete desiredRef.current[key];
+            delete inFlightRef.current[key];
             setSaving((s) => {
                 const copy = { ...s };
                 delete copy[key];
                 return copy;
             });
         }
-    }, [refreshStats]);
+    }, [setRow]);
+
+    const handleToggleProgress = useCallback((questionId, field) => {
+        const key = String(questionId);
+        const current = progressRef.current[key] || { solved: false, revised: false };
+        if (!inFlightRef.current[key]) confirmedRef.current[key] = current;
+        const next = { solved: !!current.solved, revised: !!current.revised, [field]: !current[field] };
+
+        // Optimistic: the checkbox, progress ring and heatmap all move on this click.
+        const optimistic = { ...current, ...next };
+        if (field === 'solved') {
+            if (next.solved) {
+                optimistic.solvedAt = new Date().toISOString();
+            } else {
+                optimistic.solvedAt = null;
+                optimistic.nextReviewAt = null;
+                optimistic.reviewStage = null;
+            }
+        }
+        setRow(key, optimistic);
+        desiredRef.current[key] = next;
+        if (!inFlightRef.current[key]) flushProgress(questionId);
+    }, [flushProgress, setRow]);
 
     const handleReview = useCallback(async (questionId, result) => {
         const key = String(questionId);
@@ -126,7 +157,6 @@ const Dashboard = ({ reloadKey = 0 }) => {
         try {
             const { data } = await api.post(`/api/progress/${questionId}/review`, { result });
             setProgressMap((m) => ({ ...m, [key]: { ...m[key], ...data } }));
-            refreshStats();
         } catch (err) {
             if (err.response?.status !== 401) {
                 setToast(getErrorMessage(err, "Couldn't record that review. Please try again."));
@@ -138,7 +168,7 @@ const Dashboard = ({ reloadKey = 0 }) => {
                 return copy;
             });
         }
-    }, [refreshStats]);
+    }, []);
 
     const openNotes = useCallback((questionId) => {
         setNotesError('');
@@ -214,6 +244,8 @@ const Dashboard = ({ reloadKey = 0 }) => {
         [scoped, filters, progressMap, notes, now]
     );
     const stats = useMemo(() => computeStats(scoped, progressMap), [scoped, progressMap]);
+    // Heatmap + streaks for all sections, derived from the ticks themselves (instant, never out of sync).
+    const activity = useMemo(() => computeActivity(progressMap, now), [progressMap, now]);
     const dueQuestions = useMemo(
         () => questions
             .filter((q) => isDue(progressMap[String(q.id)], now))
@@ -266,7 +298,7 @@ const Dashboard = ({ reloadKey = 0 }) => {
                 {!loading && !loadError && (
                     <>
                         {/* One heatmap for all four sections, above the section switcher. */}
-                        {activity && <div className="overview-block"><ActivityPanel stats={activity} /></div>}
+                        <div className="overview-block"><ActivityPanel stats={activity} /></div>
 
                         <SectionTabs active={section} counts={sectionCounts} onChange={changeSection} />
 

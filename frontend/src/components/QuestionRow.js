@@ -8,7 +8,7 @@ const QuestionRow = ({ question, status, hasNote, due, saving, verb = 'Solved', 
     const companies = question.companies || [];
 
     return (
-        <li className={`question ${solved ? 'question-solved' : ''}`}>
+        <li className={`question ${solved ? 'question-solved' : ''} ${saving ? 'question-saving' : ''}`}>
             <div className="question-main">
                 <a href={question.problemUrl} target="_blank" rel="noopener noreferrer" className="question-title">
                     {question.title}
@@ -35,12 +35,12 @@ const QuestionRow = ({ question, status, hasNote, due, saving, verb = 'Solved', 
                     {hasNote ? '📝 Notes' : '+ Note'}
                 </button>
                 <label className="check check-solved">
-                    <input type="checkbox" checked={solved} disabled={saving}
+                    <input type="checkbox" checked={solved}
                            onChange={() => onToggle(question.id, 'solved')} />
                     {verb}
                 </label>
                 <label className="check check-revised">
-                    <input type="checkbox" checked={revised} disabled={saving}
+                    <input type="checkbox" checked={revised}
                            onChange={() => onToggle(question.id, 'revised')} />
                     Revised
                 </label>

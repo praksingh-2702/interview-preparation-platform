@@ -44,11 +44,11 @@ public class ProgressService {
     /** Idempotent: sets the flags to exactly the given values. Both false removes the record. */
     @Transactional
     public ProgressStatus update(Long userId, Long questionId, boolean solved, boolean revised) {
-        if (!questionRepository.existsById(questionId)) {
+        Optional<Progress> existing = progressRepository.findByUserIdAndQuestionId(userId, questionId);
+        // Only a brand-new record needs the existence check (an existing one already points at the question).
+        if (existing.isEmpty() && !questionRepository.existsById(questionId)) {
             throw ApiException.notFound("Question " + questionId + " does not exist.");
         }
-
-        Optional<Progress> existing = progressRepository.findByUserIdAndQuestionId(userId, questionId);
         if (!solved && !revised) {
             existing.ifPresent(progressRepository::delete);
             return ProgressStatus.empty();

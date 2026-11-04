@@ -37,6 +37,10 @@ public interface ProgressRepository extends JpaRepository<Progress, Long> {
     List<Object[]> findAllSolvedTimestamps();
 
     @Modifying
+    @Query("DELETE FROM Progress p WHERE p.user.id = :userId")
+    int deleteByUserId(@Param("userId") Long userId);
+
+    @Modifying
     @Query("DELETE FROM Progress p WHERE p.question.id = :questionId")
     int deleteByQuestionId(@Param("questionId") Long questionId);
 

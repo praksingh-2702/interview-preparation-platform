@@ -6,6 +6,7 @@ import com.prepmind.prepapi.google.GoogleIdentity;
 import com.prepmind.prepapi.google.GoogleTokenVerifier;
 import com.prepmind.prepapi.mail.EmailSender;
 import com.prepmind.prepapi.mail.LoggingEmailSender;
+import com.prepmind.prepapi.service.AccountCleanup;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,6 +22,7 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
@@ -50,6 +52,9 @@ class ApiIntegrationTests {
 
     @Autowired
     private EmailSender emailSender;
+
+    @Autowired
+    private AccountCleanup accountCleanup;
 
     private MockMvc mvc;
 
@@ -829,5 +834,59 @@ class ApiIntegrationTests {
                 .andExpect(jsonPath("$.code").value("GOOGLE_TOKEN_INVALID"));
         mvc.perform(post("/api/auth/google").contentType(MediaType.APPLICATION_JSON).content("{}"))
                 .andExpect(status().isBadRequest());
+    }
+
+    // ---------- v3: deleting accounts ----------
+
+    @Test
+    void adminsCanDeleteUsersButNotThemselves() throws Exception {
+        String admin = adminToken();
+        String name = uniqueName();
+        registerVerified(name);
+        String token = login(name);
+        markSolved(token, firstQuestionId(token));
+        long id = userId(token);
+
+        mvc.perform(delete("/api/admin/users/" + id).header("Authorization", bearer(token)))
+                .andExpect(status().isForbidden());
+        mvc.perform(delete("/api/admin/users/" + id).header("Authorization", bearer(admin)))
+                .andExpect(status().isNoContent());
+
+        // the account and its sessions are gone
+        mvc.perform(get("/api/users/me").header("Authorization", bearer(token)))
+                .andExpect(status().isUnauthorized());
+        attemptLogin(name, PASSWORD).andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/admin/users").param("q", name).header("Authorization", bearer(admin)))
+                .andExpect(jsonPath("$", hasSize(0)));
+
+        mvc.perform(delete("/api/admin/users/" + userId(admin)).header("Authorization", bearer(admin)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("CANNOT_DELETE_SELF"));
+    }
+
+    @Test
+    void abandonedSignUpsAreRemovedButFreshOnesAndVerifiedAccountsStay() throws Exception {
+        String admin = adminToken();
+        String verified = uniqueName();
+        registerVerified(verified);
+        String pending = uniqueName();
+        register(pending, PASSWORD).andExpect(status().isCreated());
+
+        // the admin button keeps sign-ups from the last hour (someone may be typing the code)
+        mvc.perform(post("/api/admin/users/remove-unverified").header("Authorization", bearer(admin)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.removed").exists());
+        mvc.perform(get("/api/admin/users").param("q", pending).header("Authorization", bearer(admin)))
+                .andExpect(jsonPath("$", hasSize(1)));
+
+        // once they're old enough they go (negative age = "created before a minute from now")
+        accountCleanup.removeUnverifiedOlderThan(Duration.ofMinutes(-1));
+        mvc.perform(get("/api/admin/users").param("q", pending).header("Authorization", bearer(admin)))
+                .andExpect(jsonPath("$", hasSize(0)));
+        mvc.perform(get("/api/admin/users").param("q", verified).header("Authorization", bearer(admin)))
+                .andExpect(jsonPath("$", hasSize(1)));
+
+        // the email is free to sign up again
+        register(pending, PASSWORD).andExpect(status().isCreated());
     }
 }

@@ -49,11 +49,14 @@ public class DatabaseSeeder implements ApplicationRunner {
     private static final Set<String> DIFFICULTIES = Set.of("EASY", "MEDIUM", "HARD");
 
     private final QuestionRepository questionRepository;
+    private final QuestionService questionService;
     private final boolean enabled;
 
     public DatabaseSeeder(QuestionRepository questionRepository,
+                          QuestionService questionService,
                           @Value("${app.seed.enabled:true}") boolean enabled) {
         this.questionRepository = questionRepository;
+        this.questionService = questionService;
         this.enabled = enabled;
     }
 
@@ -80,6 +83,7 @@ public class DatabaseSeeder implements ApplicationRunner {
         if (!missing.isEmpty()) {
             questionRepository.saveAll(missing);
         }
+        questionService.invalidateCache(); // a request may have cached the list before seeding finished
         log.info("Question bank: {} in seed files, {} newly inserted", seed.size(), missing.size());
     }
 

@@ -32,15 +32,39 @@ public class AdminService {
     private final ProgressRepository progressRepository;
     private final ProgressEventRepository eventRepository;
     private final QuestionRepository questionRepository;
+    private final AccountCleanup accountCleanup;
     private final Clock clock;
 
     public AdminService(UserRepository userRepository, ProgressRepository progressRepository,
-                        ProgressEventRepository eventRepository, QuestionRepository questionRepository, Clock clock) {
+                        ProgressEventRepository eventRepository, QuestionRepository questionRepository,
+                        AccountCleanup accountCleanup, Clock clock) {
         this.userRepository = userRepository;
         this.progressRepository = progressRepository;
         this.eventRepository = eventRepository;
         this.questionRepository = questionRepository;
+        this.accountCleanup = accountCleanup;
         this.clock = clock;
+    }
+
+    /** Deletes an account and all its data. Not yourself, and not another admin (demote them first). */
+    @Transactional
+    public void deleteUser(Long actorId, Long userId) {
+        if (actorId.equals(userId)) {
+            throw ApiException.badRequest("CANNOT_DELETE_SELF", "You can't delete your own account here.");
+        }
+        User user = userRepository.findById(userId).orElseThrow(() -> ApiException.notFound("User not found."));
+        if (user.effectiveRole() == Role.ADMIN) {
+            throw ApiException.badRequest("CANNOT_DELETE_ADMIN", "Change this admin's role first, then delete them.");
+        }
+        String name = user.getUsername();
+        accountCleanup.delete(userId);
+        log.info("User '{}' (#{}) deleted by user #{}", name, userId, actorId);
+    }
+
+    /** Removes sign-ups that never verified, keeping ones from the last hour (they may be typing the code). */
+    @Transactional
+    public int removeUnverified() {
+        return accountCleanup.removeUnverifiedOlderThan(Duration.ofHours(1));
     }
 
     @Transactional(readOnly = true)

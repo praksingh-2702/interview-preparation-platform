@@ -14,6 +14,10 @@ public interface ProgressEventRepository extends JpaRepository<ProgressEvent, Lo
     long countActiveUsersSince(@Param("since") Instant since);
 
     @Modifying
+    @Query("DELETE FROM ProgressEvent e WHERE e.user.id = :userId")
+    int deleteByUserId(@Param("userId") Long userId);
+
+    @Modifying
     @Query("DELETE FROM ProgressEvent e WHERE e.question.id = :questionId")
     int deleteByQuestionId(@Param("questionId") Long questionId);
 }

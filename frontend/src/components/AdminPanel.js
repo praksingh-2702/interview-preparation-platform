@@ -189,7 +189,12 @@ const Users = ({ currentUsername }) => {
     const [query, setQuery] = useState('');
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [notice, setNotice] = useState('');
     const [saving, setSaving] = useState({});
+    const [confirmDelete, setConfirmDelete] = useState(null);
+    const [confirmCleanup, setConfirmCleanup] = useState(false);
+    const [reloadKey, setReloadKey] = useState(0);
+    const unverified = users.filter((u) => !u.verified).length;
 
     useEffect(() => {
         let cancelled = false;
@@ -205,7 +210,37 @@ const Users = ({ currentUsername }) => {
             }
         }, 300);
         return () => { cancelled = true; clearTimeout(t); };
-    }, [query]);
+    }, [query, reloadKey]);
+
+    const deleteUser = async (user) => {
+        setSaving((s) => ({ ...s, [user.id]: true }));
+        setError('');
+        try {
+            await api.delete(`/api/admin/users/${user.id}`);
+            setUsers((list) => list.filter((u) => u.id !== user.id));
+            setNotice(`Deleted @${user.username} and all their data.`);
+            setConfirmDelete(null);
+        } catch (err) {
+            setError(getErrorMessage(err, "Couldn't delete that user."));
+        } finally {
+            setSaving((s) => { const c = { ...s }; delete c[user.id]; return c; });
+        }
+    };
+
+    const removeUnverified = async () => {
+        setError('');
+        try {
+            const { data } = await api.post('/api/admin/users/remove-unverified');
+            const n = data?.removed ?? 0;
+            setNotice(n === 0
+                ? 'No unverified accounts older than an hour.'
+                : `Removed ${n} unverified ${n === 1 ? 'account' : 'accounts'}.`);
+            setConfirmCleanup(false);
+            setReloadKey((k) => k + 1);
+        } catch (err) {
+            setError(getErrorMessage(err, "Couldn't remove unverified accounts."));
+        }
+    };
 
     const changeRole = async (user, role) => {
         setSaving((s) => ({ ...s, [user.id]: true }));
@@ -227,8 +262,25 @@ const Users = ({ currentUsername }) => {
                     <span className="sr-only">Search users</span>
                     <input type="search" placeholder="Search username or email…" value={query} onChange={(e) => setQuery(e.target.value)} />
                 </label>
-                <span className="field-hint">Editors can add, edit and delete questions. Admins can also manage users.</span>
+                <span className="toolbar-spacer" />
+                {confirmCleanup ? (
+                    <span className="admin-actions">
+                        <span className="field-hint">Delete accounts that never verified their email?</span>
+                        <button type="button" className="btn btn-small btn-danger" onClick={removeUnverified}>Remove</button>
+                        <button type="button" className="btn btn-small btn-ghost" onClick={() => setConfirmCleanup(false)}>Cancel</button>
+                    </span>
+                ) : (
+                    <button type="button" className="btn btn-small btn-ghost btn-danger" disabled={unverified === 0}
+                            onClick={() => setConfirmCleanup(true)}>
+                        Remove unverified{unverified ? ` (${unverified})` : ''}
+                    </button>
+                )}
             </div>
+            <p className="field-hint admin-note">
+                Editors can add, edit and delete questions; admins can also manage users. Sign-ups that never verify
+                are removed automatically after 24 hours.
+            </p>
+            {notice && <div className="alert alert-success" role="status">{notice}</div>}
             {error && <div className="alert alert-error" role="alert">{error}</div>}
             <div className="card board-table-wrap">
                 <table className="board-table admin-users">
@@ -240,6 +292,7 @@ const Users = ({ currentUsername }) => {
                             <th scope="col" className="num">Done</th>
                             <th scope="col" className="num">Points</th>
                             <th scope="col">Joined</th>
+                            <th scope="col"><span className="sr-only">Actions</span></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -265,6 +318,20 @@ const Users = ({ currentUsername }) => {
                                     <td className="num">{u.completed}</td>
                                     <td className="num">{u.points}</td>
                                     <td>{formatDate(u.createdAt)}</td>
+                                    <td className="cell-actions">
+                                        {self || u.role === 'ADMIN' ? null : confirmDelete === u.id ? (
+                                            <span className="admin-actions">
+                                                <button type="button" className="btn btn-small btn-danger" disabled={!!saving[u.id]}
+                                                        onClick={() => deleteUser(u)}>Delete</button>
+                                                <button type="button" className="btn btn-small btn-ghost"
+                                                        onClick={() => setConfirmDelete(null)}>Cancel</button>
+                                            </span>
+                                        ) : (
+                                            <button type="button" className="btn btn-small btn-ghost btn-danger"
+                                                    aria-label={`Delete @${u.username}`} title="Delete user"
+                                                    onClick={() => setConfirmDelete(u.id)}>✕</button>
+                                        )}
+                                    </td>
                                 </tr>
                             );
                         })}

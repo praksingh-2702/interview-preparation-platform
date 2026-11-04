@@ -3,6 +3,7 @@ package com.prepmind.prepapi.repository;
 import com.prepmind.prepapi.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.time.Instant;
 import java.util.List;
@@ -33,6 +34,11 @@ public interface UserRepository extends JpaRepository<User, Long> {
     List<Object[]> countByRole();
 
     List<User> findTop200ByOrderByCreatedAtDesc();
+
+    /** Sign-ups that never entered their code. createdAt is null only for very old accounts. */
+    @Query("SELECT u.id FROM User u WHERE (u.emailVerified IS NULL OR u.emailVerified = false) "
+            + "AND (u.createdAt IS NULL OR u.createdAt < :before)")
+    List<Long> findUnverifiedIdsCreatedBefore(@Param("before") Instant before);
 
     List<User> findTop200ByUsernameContainingIgnoreCaseOrEmailContainingIgnoreCaseOrderByCreatedAtDesc(
             String username, String email);

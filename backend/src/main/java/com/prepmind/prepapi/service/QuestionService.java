@@ -13,6 +13,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.HashSet;
 import java.util.List;
@@ -28,6 +30,11 @@ public class QuestionService {
     private final ProgressRepository progressRepository;
     private final ProgressEventRepository eventRepository;
     private final NoteRepository noteRepository;
+    /**
+     * Every question, ready to serve. The bank only changes when an editor edits it (or on deploy), so
+     * dashboard loads skip the database. Dropped after any change commits; rebuilt on the next read.
+     */
+    private volatile List<QuestionResponse> cache;
 
     public QuestionService(QuestionRepository questionRepository,
                            ProgressRepository progressRepository,
@@ -47,13 +54,39 @@ public class QuestionService {
         String difficultyF = blankToNull(difficulty);
         String categoryF = blankToNull(category);
 
-        return questionRepository.findAllWithCompanies().stream()
-                .filter(q -> sectionF == null || sectionF.equals(q.getSection() == null ? Sections.DSA : q.getSection()))
-                .filter(q -> difficultyF == null || q.getDifficulty().equalsIgnoreCase(difficultyF))
-                .filter(q -> categoryF == null || q.getCategory().equalsIgnoreCase(categoryF))
-                .filter(q -> companyF == null || q.getCompanies().stream().anyMatch(c -> c.equalsIgnoreCase(companyF)))
-                .map(QuestionResponse::from)
+        List<QuestionResponse> all = all();
+        if (sectionF == null && companyF == null && difficultyF == null && categoryF == null) {
+            return all;
+        }
+        return all.stream()
+                .filter(q -> sectionF == null || sectionF.equals(q.section()))
+                .filter(q -> difficultyF == null || q.difficulty().equalsIgnoreCase(difficultyF))
+                .filter(q -> categoryF == null || q.category().equalsIgnoreCase(categoryF))
+                .filter(q -> companyF == null || q.companies().stream().anyMatch(c -> c.equalsIgnoreCase(companyF)))
                 .toList();
+    }
+
+    private List<QuestionResponse> all() {
+        List<QuestionResponse> current = cache;
+        if (current == null) {
+            current = questionRepository.findAllWithCompanies().stream().map(QuestionResponse::from).toList();
+            cache = current;
+        }
+        return current;
+    }
+
+    /** Drops the cached list once the current transaction commits (or right away outside one). */
+    public void invalidateCache() {
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    cache = null;
+                }
+            });
+        } else {
+            cache = null;
+        }
     }
 
     /** Editors and admins. */
@@ -62,7 +95,9 @@ public class QuestionService {
         Question q = new Question();
         apply(q, request, null);
         log.info("Question created: [{}] {}", q.getSection(), q.getTitle());
-        return QuestionResponse.from(questionRepository.save(q));
+        QuestionResponse saved = QuestionResponse.from(questionRepository.save(q));
+        invalidateCache();
+        return saved;
     }
 
     /** Editors and admins. Everyone's progress on the question is kept. */
@@ -71,7 +106,9 @@ public class QuestionService {
         Question q = questionRepository.findById(id)
                 .orElseThrow(() -> ApiException.notFound("Question " + id + " does not exist."));
         apply(q, request, id);
-        return QuestionResponse.from(questionRepository.save(q));
+        QuestionResponse saved = QuestionResponse.from(questionRepository.save(q));
+        invalidateCache();
+        return saved;
     }
 
     /** Editors and admins. Also removes everyone's progress, notes and activity for it. */
@@ -83,6 +120,7 @@ public class QuestionService {
         progressRepository.deleteByQuestionId(id);
         noteRepository.deleteByQuestionId(id);
         questionRepository.delete(q);
+        invalidateCache();
         log.info("Question deleted: [{}] {}", q.getSection(), q.getTitle());
     }
 
