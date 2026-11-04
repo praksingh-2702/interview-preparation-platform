@@ -1,7 +1,11 @@
 import React from 'react';
 import QuestionRow from './QuestionRow';
+import { isDue } from '../utils/time';
 
-const TopicSection = ({ topic, questions, progressMap, saving, expanded, onToggleExpanded, onToggleProgress }) => {
+const TopicSection = ({
+    topic, questions, progressMap, notes, saving, now, expanded,
+    onToggleExpanded, onToggleProgress, onOpenNotes,
+}) => {
     const solved = questions.filter((q) => progressMap[String(q.id)]?.solved).length;
     const percent = questions.length ? Math.round((solved / questions.length) * 100) : 0;
     const bodyId = `topic-${topic.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}`;
@@ -20,15 +24,21 @@ const TopicSection = ({ topic, questions, progressMap, saving, expanded, onToggl
 
             {expanded && (
                 <ul className="question-list" id={bodyId}>
-                    {questions.map((q) => (
-                        <QuestionRow
-                            key={q.id}
-                            question={q}
-                            status={progressMap[String(q.id)]}
-                            saving={!!saving[String(q.id)]}
-                            onToggle={onToggleProgress}
-                        />
-                    ))}
+                    {questions.map((q) => {
+                        const key = String(q.id);
+                        return (
+                            <QuestionRow
+                                key={q.id}
+                                question={q}
+                                status={progressMap[key]}
+                                hasNote={!!notes[key]}
+                                due={isDue(progressMap[key], now)}
+                                saving={!!saving[key]}
+                                onToggle={onToggleProgress}
+                                onOpenNotes={onOpenNotes}
+                            />
+                        );
+                    })}
                 </ul>
             )}
         </section>

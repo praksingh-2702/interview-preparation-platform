@@ -47,6 +47,14 @@ public class User {
     @Column(name = "created_at")
     private Instant createdAt;
 
+    /** Null for accounts created before OTP verification existed; treated as not verified. */
+    @Column(name = "email_verified")
+    private Boolean emailVerified;
+
+    public boolean hasVerifiedEmail() {
+        return Boolean.TRUE.equals(emailVerified);
+    }
+
     @PrePersist
     protected void onCreate() {
         if (createdAt == null) {

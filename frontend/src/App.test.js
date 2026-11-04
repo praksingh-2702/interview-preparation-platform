@@ -2,10 +2,12 @@ import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import App from './App';
 import api from './services/api';
-import { computeStats, ringGradient } from './utils/stats';
+import { applyListFilters, computeStats, ringGradient } from './utils/stats';
+import { buildHeatmap, levelFor } from './utils/heatmap';
+import { localDateKey } from './utils/time';
 
 jest.mock('./services/api', () => {
-    const mockApi = { get: jest.fn(), post: jest.fn(), put: jest.fn() };
+    const mockApi = { get: jest.fn(), post: jest.fn(), put: jest.fn(), delete: jest.fn() };
     return {
         __esModule: true,
         default: mockApi,
@@ -13,6 +15,8 @@ jest.mock('./services/api', () => {
         getErrorMessage: (err, fallback = 'error') =>
             err?.response?.data?.detail || fallback,
         getFieldErrors: (err) => err?.response?.data?.errors || {},
+        getErrorCode: (err) => err?.response?.data?.code || null,
+        getRetryAfter: () => null,
     };
 });
 
@@ -28,6 +32,23 @@ const fakeToken = (expSecondsFromNow = 3600) => {
     return `header.${payload}.sig`;
 };
 
+const mockGets = ({ progress = {}, notes = {}, stats = null } = {}) => {
+    api.get.mockImplementation((url) => {
+        if (url === '/api/questions') return Promise.resolve({ data: QUESTIONS });
+        if (url === '/api/progress/my-status') return Promise.resolve({ data: progress });
+        if (url === '/api/notes') return Promise.resolve({ data: notes });
+        if (url === '/api/stats') {
+            return stats ? Promise.resolve({ data: stats }) : Promise.reject({ response: { status: 404 } });
+        }
+        return Promise.reject(new Error(`unexpected GET ${url}`));
+    });
+};
+
+const loggedIn = () => {
+    localStorage.setItem('token', fakeToken());
+    localStorage.setItem('username', 'om');
+};
+
 beforeEach(() => {
     localStorage.clear();
     jest.clearAllMocks();
@@ -36,7 +57,7 @@ beforeEach(() => {
 test('shows the login screen when there is no session', () => {
     render(<App />);
     expect(screen.getByRole('button', { name: 'Log in' })).toBeInTheDocument();
-    expect(screen.getByLabelText('Username')).toBeInTheDocument();
+    expect(screen.getByLabelText('Username or email')).toBeInTheDocument();
 });
 
 test('an expired stored token starts at login instead of a broken dashboard', () => {
@@ -48,12 +69,10 @@ test('an expired stored token starts at login instead of a broken dashboard', ()
 
 test('logs in, loads the dashboard and shows real progress numbers', async () => {
     api.post.mockResolvedValueOnce({ data: { token: fakeToken(), username: 'om' } });
-    api.get.mockImplementation((url) => Promise.resolve(
-        url === '/api/questions' ? { data: QUESTIONS } : { data: { 1: { solved: true, revised: false } } }
-    ));
+    mockGets({ progress: { 1: { solved: true, revised: false } } });
 
     render(<App />);
-    await userEvent.type(screen.getByLabelText('Username'), 'om');
+    await userEvent.type(screen.getByLabelText('Username or email'), 'om');
     await userEvent.type(screen.getByLabelText('Password'), 'secret-password');
     await userEvent.click(screen.getByRole('button', { name: 'Log in' }));
 
@@ -66,9 +85,8 @@ test('logs in, loads the dashboard and shows real progress numbers', async () =>
 });
 
 test('toggling a checkbox saves with PUT and rolls back on failure', async () => {
-    localStorage.setItem('token', fakeToken());
-    localStorage.setItem('username', 'om');
-    api.get.mockImplementation((url) => Promise.resolve(url === '/api/questions' ? { data: QUESTIONS } : { data: {} }));
+    loggedIn();
+    mockGets();
     api.put.mockResolvedValueOnce({ data: { solved: true, revised: false } });
 
     render(<App />);
@@ -88,8 +106,8 @@ test('toggling a checkbox saves with PUT and rolls back on failure', async () =>
 });
 
 test('a session-expired event returns the user to login with an explanation', async () => {
-    localStorage.setItem('token', fakeToken());
-    api.get.mockImplementation((url) => Promise.resolve(url === '/api/questions' ? { data: QUESTIONS } : { data: {} }));
+    loggedIn();
+    mockGets();
 
     render(<App />);
     await screen.findByText('Two Sum');
@@ -109,4 +127,153 @@ test('progress ring leaves unsolved questions neutral (not red)', () => {
     const some = computeStats(QUESTIONS, { 1: { solved: true } });
     expect(ringGradient(some)).toContain('var(--easy) 0deg 120deg');
     expect(ringGradient(some)).toContain('var(--track) 120deg 360deg');
+});
+
+
+// ---------- v2 ----------
+
+test('search narrows the list and expands matching topics', async () => {
+    loggedIn();
+    mockGets();
+    render(<App />);
+    await screen.findByText('Two Sum');
+    // Binary Search topic starts collapsed
+    expect(screen.queryByText('https://x/3')).not.toBeInTheDocument();
+
+    await userEvent.type(screen.getByPlaceholderText(/Search problems/), 'apple');
+    expect(await screen.findByRole('link', { name: 'Binary Search' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Two Sum' })).not.toBeInTheDocument();
+    expect(screen.getByText('1 problem match')).toBeInTheDocument();
+});
+
+test('due problems show in the revision queue and can be reviewed', async () => {
+    loggedIn();
+    const yesterday = new Date(Date.now() - 86400000).toISOString();
+    mockGets({ progress: { 2: { solved: true, revised: false, nextReviewAt: yesterday, reviewStage: 0 } } });
+    api.post.mockResolvedValueOnce({
+        data: { solved: true, revised: true, nextReviewAt: new Date(Date.now() + 3 * 86400000).toISOString(), reviewStage: 1 },
+    });
+
+    render(<App />);
+    const queue = await screen.findByRole('region', { name: 'Revision queue' });
+    expect(within(queue).getByText('1 due')).toBeInTheDocument();
+    expect(within(queue).getByRole('link', { name: '3Sum' })).toBeInTheDocument();
+
+    await userEvent.click(within(queue).getByRole('button', { name: 'Got it' }));
+    expect(api.post).toHaveBeenCalledWith('/api/progress/2/review', { result: 'GOOD' });
+    await waitFor(() => expect(within(queue).getByText('0 due')).toBeInTheDocument());
+});
+
+test('notes can be added from a problem row', async () => {
+    loggedIn();
+    mockGets();
+    api.put.mockResolvedValueOnce({
+        status: 200, data: { questionId: 1, content: 'two pointers', solutionUrl: null, updatedAt: '2026-11-04T00:00:00Z' },
+    });
+
+    render(<App />);
+    await userEvent.click(await screen.findByRole('button', { name: 'Add notes for Two Sum' }));
+    const dialog = screen.getByRole('dialog');
+    await userEvent.type(within(dialog).getByLabelText('Your notes'), 'two pointers');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
+
+    expect(api.put).toHaveBeenCalledWith('/api/notes/1', { content: 'two pointers', solutionUrl: '' });
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(screen.getByRole('button', { name: 'Edit notes for Two Sum' })).toBeInTheDocument();
+});
+
+test('activity panel shows streaks from the stats endpoint', async () => {
+    loggedIn();
+    mockGets({
+        stats: {
+            activity: [{ date: localDateKey(new Date()), count: 3 }],
+            currentStreak: 4, longestStreak: 9, activeDays: 20, dueForRevision: 0, timezone: 'Asia/Kolkata',
+        },
+    });
+    render(<App />);
+    const panel = await screen.findByRole('region', { name: 'Activity' });
+    expect(within(panel).getByText('4')).toBeInTheDocument();
+    expect(within(panel).getByText('9')).toBeInTheDocument();
+    expect(within(panel).getByText('3 activities in the last year')).toBeInTheDocument();
+});
+
+test('heatmap grid ends today and buckets counts into levels', () => {
+    const today = new Date(2026, 10, 4); // Wed 4 Nov 2026
+    const { columns } = buildHeatmap([{ date: '2026-11-04', count: 4 }, { date: '2026-11-02', count: 1 }], today);
+    expect(columns).toHaveLength(53);
+    const last = columns[52];
+    expect(last[0].date).toBe('2026-11-01'); // Sunday
+    expect(last[3]).toMatchObject({ date: '2026-11-04', count: 4, level: 3, future: false });
+    expect(last[1].level).toBe(1);
+    expect(last[4].future).toBe(true);
+    expect([0, 1, 2, 3, 6].map(levelFor)).toEqual([0, 1, 2, 2, 4]);
+});
+
+test('status filters use progress and notes', () => {
+    const progress = { 1: { solved: true }, 2: { solved: true, nextReviewAt: '2000-01-01T00:00:00Z' } };
+    const ids = (status) => applyListFilters(QUESTIONS, { search: '', status }, { progressMap: progress, notes: { 3: {} } })
+        .map((q) => q.id);
+    expect(ids('solved')).toEqual([1, 2]);
+    expect(ids('unsolved')).toEqual([3]);
+    expect(ids('due')).toEqual([2]);
+    expect(ids('notes')).toEqual([3]);
+});
+
+
+// ---------- v2 phase 2: accounts ----------
+
+test('register → enter code → log in', async () => {
+    api.post
+        .mockResolvedValueOnce({ status: 201, data: { message: 'We emailed a code to om@example.com.', email: 'om@example.com' } })
+        .mockResolvedValueOnce({ data: { message: 'Email verified.' } });
+    render(<App />);
+
+    await userEvent.click(screen.getByRole('tab', { name: 'Create account' }));
+    await userEvent.type(screen.getByLabelText('Username'), 'om');
+    await userEvent.type(screen.getByLabelText('Email'), 'om@example.com');
+    await userEvent.type(screen.getByLabelText('Password'), 'secret-password');
+    await userEvent.click(screen.getByRole('button', { name: 'Create account' }));
+
+    expect(await screen.findByText('Verify your email')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Resend code in \d+s/ })).toBeDisabled();
+    await userEvent.type(screen.getByLabelText('6-digit code'), '12a3456');
+    expect(screen.getByLabelText('6-digit code')).toHaveValue('123456');
+    await userEvent.click(screen.getByRole('button', { name: 'Verify email' }));
+
+    expect(api.post).toHaveBeenLastCalledWith('/api/auth/verify-email', { email: 'om@example.com', code: '123456' });
+    expect(await screen.findByText(/Email verified! Log in/)).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Log in' })).toHaveAttribute('aria-selected', 'true');
+});
+
+test('logging in to an unverified account jumps to the code step', async () => {
+    api.post.mockRejectedValueOnce({
+        response: { status: 403, data: { code: 'EMAIL_NOT_VERIFIED', detail: 'Please verify your email first.', email: 'om@example.com' } },
+    });
+    render(<App />);
+    await userEvent.type(screen.getByLabelText('Username or email'), 'om');
+    await userEvent.type(screen.getByLabelText('Password'), 'secret-password');
+    await userEvent.click(screen.getByRole('button', { name: 'Log in' }));
+
+    expect(await screen.findByText('Verify your email')).toBeInTheDocument();
+    expect(screen.getByText('om@example.com')).toBeInTheDocument();
+});
+
+test('forgot password → code + new password → back to login', async () => {
+    api.post
+        .mockResolvedValueOnce({ data: { message: 'If an account exists for that email, we sent a code.' } })
+        .mockResolvedValueOnce({ data: { message: 'Password updated.' } });
+    render(<App />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Forgot password?' }));
+    await userEvent.type(screen.getByLabelText('Email'), 'om@example.com');
+    await userEvent.click(screen.getByRole('button', { name: 'Send reset code' }));
+
+    expect(await screen.findByText('Choose a new password')).toBeInTheDocument();
+    await userEvent.type(screen.getByLabelText('6-digit code'), '654321');
+    await userEvent.type(screen.getByLabelText('New password'), 'new-password-1');
+    await userEvent.click(screen.getByRole('button', { name: 'Set new password' }));
+
+    expect(api.post).toHaveBeenLastCalledWith('/api/auth/reset-password',
+        { email: 'om@example.com', code: '654321', newPassword: 'new-password-1' });
+    expect(await screen.findByText(/Password updated/)).toBeInTheDocument();
 });

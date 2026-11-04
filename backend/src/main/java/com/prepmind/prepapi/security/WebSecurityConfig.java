@@ -48,7 +48,9 @@ public class WebSecurityConfig {
             .exceptionHandling(e -> e.authenticationEntryPoint(handlers).accessDeniedHandler(handlers))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                .requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/login", "/api/auth/logout").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/verify-email",
+                        "/api/auth/resend-verification", "/api/auth/login", "/api/auth/logout",
+                        "/api/auth/forgot-password", "/api/auth/reset-password").permitAll()
                 .requestMatchers("/actuator/health", "/actuator/health/**", "/error").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/questions").hasRole("ADMIN")
                 .anyRequest().authenticated()

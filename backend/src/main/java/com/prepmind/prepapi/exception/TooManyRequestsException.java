@@ -12,6 +12,11 @@ public class TooManyRequestsException extends ApiException {
         this.retryAfterSeconds = retryAfterSeconds;
     }
 
+    public TooManyRequestsException(String code, String message, long retryAfterSeconds) {
+        super(HttpStatus.TOO_MANY_REQUESTS, code, message);
+        this.retryAfterSeconds = retryAfterSeconds;
+    }
+
     public long getRetryAfterSeconds() {
         return retryAfterSeconds;
     }

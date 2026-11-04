@@ -32,6 +32,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     public ResponseEntity<ProblemDetail> handleApi(ApiException ex) {
         ProblemDetail body = ProblemDetail.forStatusAndDetail(ex.getStatus(), ex.getMessage());
         body.setProperty("code", ex.getCode());
+        ex.getProperties().forEach(body::setProperty);
         ResponseEntity.BodyBuilder response = ResponseEntity.status(ex.getStatus());
         if (ex instanceof TooManyRequestsException tooMany) {
             response.header(HttpHeaders.RETRY_AFTER, String.valueOf(tooMany.getRetryAfterSeconds()));

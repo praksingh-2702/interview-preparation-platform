@@ -1,7 +1,7 @@
 import React from 'react';
 import { DIFFICULTY_LABEL } from '../utils/stats';
 
-const QuestionRow = ({ question, status, saving, onToggle }) => {
+const QuestionRow = ({ question, status, hasNote, due, saving, onToggle, onOpenNotes }) => {
     const solved = !!status?.solved;
     const revised = !!status?.revised;
 
@@ -11,6 +11,7 @@ const QuestionRow = ({ question, status, saving, onToggle }) => {
                 <a href={question.problemUrl} target="_blank" rel="noopener noreferrer" className="question-title">
                     {question.title}
                 </a>
+                {due && <span className="pill pill-due">Due</span>}
                 {question.description && <p className="question-desc">{question.description}</p>}
             </div>
 
@@ -24,6 +25,11 @@ const QuestionRow = ({ question, status, saving, onToggle }) => {
             </div>
 
             <div className="question-actions">
+                <button type="button" className={`btn btn-small btn-notes ${hasNote ? 'btn-notes-filled' : ''}`}
+                        onClick={() => onOpenNotes(question.id)}
+                        aria-label={`${hasNote ? 'Edit' : 'Add'} notes for ${question.title}`}>
+                    {hasNote ? '📝 Notes' : '+ Note'}
+                </button>
                 <label className="check check-solved">
                     <input type="checkbox" checked={solved} disabled={saving}
                            onChange={() => onToggle(question.id, 'solved')} />

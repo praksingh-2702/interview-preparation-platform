@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 
 @Entity
@@ -41,6 +42,22 @@ public class Progress {
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    // ---- Revision schedule (v2). All nullable so existing rows migrate cleanly. ----
+
+    @Column(name = "solved_at")
+    private Instant solvedAt;
+
+    @Column(name = "last_reviewed_at")
+    private Instant lastReviewedAt;
+
+    /** When this problem is next due in the revision queue. Null while unsolved. */
+    @Column(name = "next_review_at")
+    private Instant nextReviewAt;
+
+    /** Index into RevisionSchedule.INTERVAL_DAYS. Null while unsolved. */
+    @Column(name = "review_stage")
+    private Integer reviewStage;
 
     public void setSolved(boolean solved) {
         this.solved = solved;

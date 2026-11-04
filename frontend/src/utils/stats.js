@@ -1,3 +1,5 @@
+import { isDue } from './time';
+
 export const DIFFICULTIES = ['EASY', 'MEDIUM', 'HARD'];
 
 export const DIFFICULTY_LABEL = { EASY: 'Easy', MEDIUM: 'Medium', HARD: 'Hard' };
@@ -21,11 +23,44 @@ export const getCompanies = (questions) => {
     return [...set].sort((a, b) => a.localeCompare(b));
 };
 
+export const STATUS_FILTERS = [
+    { value: '', label: 'All statuses' },
+    { value: 'unsolved', label: 'Unsolved' },
+    { value: 'solved', label: 'Solved' },
+    { value: 'due', label: 'Due for revision' },
+    { value: 'revised', label: 'Revised' },
+    { value: 'notes', label: 'Has notes' },
+];
+
+/** Scope filters: these also change the progress numbers at the top. */
 export const filterQuestions = (questions, { company, difficulty }) =>
     questions.filter((q) =>
         (!company || (q.companies || []).includes(company)) &&
         (!difficulty || q.difficulty === difficulty)
     );
+
+const matchesStatus = (status, filter, hasNote, now) => {
+    switch (filter) {
+        case 'unsolved': return !status?.solved;
+        case 'solved': return !!status?.solved;
+        case 'due': return isDue(status, now);
+        case 'revised': return !!status?.revised;
+        case 'notes': return hasNote;
+        default: return true;
+    }
+};
+
+/** List filters: narrow what is shown without changing the progress numbers. */
+export const applyListFilters = (questions, { search, status }, { progressMap = {}, notes = {}, now = Date.now() } = {}) => {
+    const term = (search || '').trim().toLowerCase();
+    return questions.filter((q) => {
+        if (term) {
+            const haystack = [q.title, q.description, q.category, ...(q.companies || [])].join(' ').toLowerCase();
+            if (!haystack.includes(term)) return false;
+        }
+        return matchesStatus(progressMap[String(q.id)], status, !!notes[String(q.id)], now);
+    });
+};
 
 /** Totals and solved counts, overall and per difficulty. */
 export const computeStats = (questions, progressMap) => {

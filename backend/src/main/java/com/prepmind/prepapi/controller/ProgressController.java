@@ -3,6 +3,7 @@ package com.prepmind.prepapi.controller;
 import com.prepmind.prepapi.dto.ProgressRequest;
 import com.prepmind.prepapi.dto.ProgressStatus;
 import com.prepmind.prepapi.dto.ProgressUpdateRequest;
+import com.prepmind.prepapi.dto.ReviewRequest;
 import com.prepmind.prepapi.security.AuthenticatedUser;
 import com.prepmind.prepapi.service.ProgressService;
 import jakarta.validation.Valid;
@@ -38,6 +39,14 @@ public class ProgressController {
                                  @PathVariable Long questionId,
                                  @RequestBody ProgressUpdateRequest request) {
         return progressService.update(user.id(), questionId, request.solved(), request.revised());
+    }
+
+    /** Revision queue: GOOD pushes the next review out (1→3→7→14→30→60 days), AGAIN resets to 1 day. */
+    @PostMapping("/{questionId}/review")
+    public ProgressStatus review(@AuthenticationPrincipal AuthenticatedUser user,
+                                 @PathVariable Long questionId,
+                                 @Valid @RequestBody ReviewRequest request) {
+        return progressService.review(user.id(), questionId, request.result());
     }
 
     /** Kept for older frontends; prefer PUT /api/progress/{questionId}. */
