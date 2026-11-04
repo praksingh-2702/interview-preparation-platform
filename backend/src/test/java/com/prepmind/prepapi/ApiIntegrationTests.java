@@ -1,12 +1,18 @@
 package com.prepmind.prepapi;
 
 import com.jayway.jsonpath.JsonPath;
+import com.prepmind.prepapi.exception.ApiException;
+import com.prepmind.prepapi.google.GoogleIdentity;
+import com.prepmind.prepapi.google.GoogleTokenVerifier;
 import com.prepmind.prepapi.mail.EmailSender;
 import com.prepmind.prepapi.mail.LoggingEmailSender;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Primary;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers;
 import org.springframework.test.context.ActiveProfiles;
@@ -15,14 +21,15 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -45,6 +52,30 @@ class ApiIntegrationTests {
     private EmailSender emailSender;
 
     private MockMvc mvc;
+
+    /** Google stand-in: the "ID token" is just "subject|email". */
+    @TestConfiguration
+    static class FakeGoogle {
+        @Bean
+        @Primary
+        GoogleTokenVerifier fakeGoogleVerifier() {
+            return new GoogleTokenVerifier() {
+                @Override
+                public boolean isEnabled() {
+                    return true;
+                }
+
+                @Override
+                public GoogleIdentity verify(String idToken) {
+                    String[] parts = idToken.split("\\|");
+                    if (parts.length != 2) {
+                        throw ApiException.unauthorized("GOOGLE_TOKEN_INVALID", "Google sign-in failed.");
+                    }
+                    return new GoogleIdentity(parts[0], parts[1], true, null);
+                }
+            };
+        }
+    }
 
     @BeforeEach
     void setUp() {
@@ -104,6 +135,29 @@ class ApiIntegrationTests {
         String name = uniqueName();
         registerVerified(name);
         return login(name);
+    }
+
+    /** admin_user is listed in app.admin.usernames (test properties). Logging in rotates its session. */
+    private String adminToken() throws Exception {
+        if (attemptLogin("admin_user", PASSWORD).andReturn().getResponse().getStatus() != 200) {
+            registerVerified("admin_user");
+        }
+        return login("admin_user");
+    }
+
+    private long userId(String token) throws Exception {
+        String json = mvc.perform(get("/api/users/me").header("Authorization", bearer(token)))
+                .andReturn().getResponse().getContentAsString();
+        return ((Number) JsonPath.read(json, "$.id")).longValue();
+    }
+
+    private ResultActions googleLogin(String subject, String email) throws Exception {
+        return mvc.perform(post("/api/auth/google").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"credential\":\"%s|%s\"}".formatted(subject, email)));
+    }
+
+    private static String json(ResultActions result) throws Exception {
+        return result.andReturn().getResponse().getContentAsString();
     }
 
     private static String bearer(String token) {
@@ -207,7 +261,9 @@ class ApiIntegrationTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.username").value(name))
                 .andExpect(jsonPath("$.email").value(name.toLowerCase() + "@example.com"))
-                .andExpect(jsonPath("$.roles", not(hasItem("ROLE_ADMIN"))));
+                .andExpect(jsonPath("$.role").value("USER"))
+                .andExpect(jsonPath("$.showOnLeaderboard").value(true))
+                .andExpect(jsonPath("$.needsUsername").value(false));
     }
 
     // ---------- v2: email verification + password reset ----------
@@ -298,13 +354,41 @@ class ApiIntegrationTests {
                 .andExpect(jsonPath("$[0].title").value("Two Sum"))
                 .andExpect(jsonPath("$[0].companies", hasItem("Google")));
 
-        mvc.perform(get("/api/questions").param("difficulty", "hard").header("Authorization", bearer(token)))
+        mvc.perform(get("/api/questions").param("section", "DSA").param("difficulty", "hard")
+                        .header("Authorization", bearer(token)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(12)));
     }
 
     @Test
-    void onlyAdminsCanCreateQuestions() throws Exception {
+    void theorySectionsLinkOutAndCanBeTracked() throws Exception {
+        String token = newUserToken();
+        String json = mvc.perform(get("/api/questions").param("section", "os").header("Authorization", bearer(token)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(greaterThanOrEqualTo(30))))
+                .andExpect(jsonPath("$[0].section").value("OS"))
+                .andExpect(jsonPath("$[0].problemUrl").value(org.hamcrest.Matchers.startsWith("https://www.geeksforgeeks.org/")))
+                .andReturn().getResponse().getContentAsString();
+        Number osId = JsonPath.read(json, "$[0].id");
+
+        // DSA questions carry their section too
+        mvc.perform(get("/api/questions").param("section", "DSA").header("Authorization", bearer(token)))
+                .andExpect(jsonPath("$", hasSize(greaterThanOrEqualTo(100))))
+                .andExpect(jsonPath("$[0].section").value("DSA"));
+
+        // progress, revision and stats work the same for theory
+        mvc.perform(put("/api/progress/" + osId).header("Authorization", bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"solved\":true,\"revised\":false}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.reviewStage").value(0));
+
+        mvc.perform(get("/api/questions").param("section", "PHYSICS").header("Authorization", bearer(token)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("UNKNOWN_SECTION"));
+    }
+
+    @Test
+    void onlyEditorsAndAdminsCanCreateQuestions() throws Exception {
         String body = """
                 {"title":"Valid Anagram","category":"Arrays","difficulty":"EASY",
                  "problemUrl":"https://leetcode.com/problems/valid-anagram/","companies":["Amazon"],
@@ -315,8 +399,7 @@ class ApiIntegrationTests {
                         .contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isForbidden());
 
-        registerVerified("admin_user");
-        String admin = login("admin_user");
+        String admin = adminToken();
         mvc.perform(post("/api/questions").header("Authorization", bearer(admin))
                         .contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isCreated())
@@ -482,9 +565,27 @@ class ApiIntegrationTests {
                 .andExpect(jsonPath("$.currentStreak").value(1))
                 .andExpect(jsonPath("$.longestStreak").value(1))
                 .andExpect(jsonPath("$.activity", hasSize(1)))
-                .andExpect(jsonPath("$.activity[0].count").value(2))
+                .andExpect(jsonPath("$.activity[0].count").value(1)) // the review itself doesn't count
                 .andExpect(jsonPath("$.dueForRevision").value(0))
                 .andExpect(jsonPath("$.timezone").value("Asia/Kolkata"));
+
+        // a theory tick lands on the same combined heatmap
+        String os = mvc.perform(get("/api/questions").param("section", "OS").header("Authorization", bearer(token)))
+                .andReturn().getResponse().getContentAsString();
+        long osId = ((Number) JsonPath.read(os, "$[0].id")).longValue();
+        markSolved(token, osId);
+        mvc.perform(get("/api/stats").param("tz", "Asia/Kolkata").header("Authorization", bearer(token)))
+                .andExpect(jsonPath("$.activity[0].count").value(2));
+
+        // unticking removes the activity again
+        for (long id : new long[] {qid, osId}) {
+            mvc.perform(put("/api/progress/" + id).header("Authorization", bearer(token))
+                            .contentType(MediaType.APPLICATION_JSON).content("{\"solved\":false,\"revised\":false}"))
+                    .andExpect(status().isOk());
+        }
+        mvc.perform(get("/api/stats").param("tz", "Asia/Kolkata").header("Authorization", bearer(token)))
+                .andExpect(jsonPath("$.activity", hasSize(0)))
+                .andExpect(jsonPath("$.currentStreak").value(0));
 
         // a bogus timezone falls back to UTC instead of erroring
         mvc.perform(get("/api/stats").param("tz", "Mars/Olympus").header("Authorization", bearer(token)))
@@ -495,5 +596,238 @@ class ApiIntegrationTests {
     @Test
     void healthEndpointIsPublic() throws Exception {
         mvc.perform(get("/actuator/health")).andExpect(status().isOk());
+    }
+
+    // ---------- v3: roles + admin panel ----------
+
+    @Test
+    void adminsManageRolesAndEditorsManageQuestions() throws Exception {
+        String admin = adminToken();
+        String name = uniqueName();
+        registerVerified(name);
+        String user = login(name);
+        long id = userId(user);
+
+        mvc.perform(get("/api/admin/overview").header("Authorization", bearer(user)))
+                .andExpect(status().isForbidden());
+        mvc.perform(get("/api/admin/overview").header("Authorization", bearer(admin)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalUsers").value(greaterThanOrEqualTo(2)))
+                .andExpect(jsonPath("$.questionsBySection.DSA").value(greaterThanOrEqualTo(100)))
+                .andExpect(jsonPath("$.usersByRole.ADMIN").value(greaterThanOrEqualTo(1)));
+        mvc.perform(get("/api/admin/users").param("q", name).header("Authorization", bearer(admin)))
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].role").value("USER"))
+                .andExpect(jsonPath("$[0].verified").value(true));
+
+        // promote to EDITOR: applies to the user's existing token right away
+        mvc.perform(put("/api/admin/users/" + id + "/role").header("Authorization", bearer(admin))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"role\":\"EDITOR\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.role").value("EDITOR"));
+        mvc.perform(get("/api/users/me").header("Authorization", bearer(user)))
+                .andExpect(jsonPath("$.role").value("EDITOR"));
+
+        String body = """
+                {"section":"CN","title":"Editor topic %s","category":"Basics","difficulty":"EASY",
+                 "problemUrl":"https://www.geeksforgeeks.org/computer-networks/editor-%s/"}
+                """.formatted(name, name);
+        String created = json(mvc.perform(post("/api/questions").header("Authorization", bearer(user))
+                        .contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.section").value("CN")));
+        long qid = ((Number) JsonPath.read(created, "$.id")).longValue();
+
+        mvc.perform(put("/api/questions/" + qid).header("Authorization", bearer(user))
+                        .contentType(MediaType.APPLICATION_JSON).content(body.replace("EASY", "HARD")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.difficulty").value("HARD"));
+
+        // editors can't manage users
+        mvc.perform(get("/api/admin/users").header("Authorization", bearer(user)))
+                .andExpect(status().isForbidden());
+
+        // deleting also clears everyone's progress on it
+        mvc.perform(put("/api/progress/" + qid).header("Authorization", bearer(user))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"solved\":true,\"revised\":false}"))
+                .andExpect(status().isOk());
+        mvc.perform(delete("/api/questions/" + qid).header("Authorization", bearer(user)))
+                .andExpect(status().isNoContent());
+        mvc.perform(get("/api/progress/my-status").header("Authorization", bearer(user)))
+                .andExpect(jsonPath("$['" + qid + "']").doesNotExist());
+
+        // demote back to USER: writes are refused again
+        mvc.perform(put("/api/admin/users/" + id + "/role").header("Authorization", bearer(admin))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"role\":\"USER\"}"))
+                .andExpect(status().isOk());
+        mvc.perform(delete("/api/questions/" + firstQuestionId(user)).header("Authorization", bearer(user)))
+                .andExpect(status().isForbidden());
+
+        // an admin can't change their own role (so there's always an admin left)
+        mvc.perform(put("/api/admin/users/" + userId(admin) + "/role").header("Authorization", bearer(admin))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"role\":\"USER\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("CANNOT_CHANGE_OWN_ROLE"));
+    }
+
+    // ---------- v3: usernames ----------
+
+    @Test
+    void usernamesAreUniqueAndCanBeChanged() throws Exception {
+        String taken = uniqueName();
+        registerVerified(taken);
+        String name = uniqueName();
+        registerVerified(name);
+        String token = login(name);
+
+        mvc.perform(get("/api/users/username-available").param("username", taken.toUpperCase()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.available").value(false));
+        mvc.perform(get("/api/users/username-available").param("username", "a b"))
+                .andExpect(jsonPath("$.available").value(false));
+        // your own current name counts as available to you
+        mvc.perform(get("/api/users/username-available").param("username", name).header("Authorization", bearer(token)))
+                .andExpect(jsonPath("$.available").value(true));
+
+        mvc.perform(put("/api/users/me/username").header("Authorization", bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"username\":\"%s\"}".formatted(taken)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("USERNAME_TAKEN"));
+
+        String renamed = name + "_v2";
+        String fresh = JsonPath.read(json(mvc.perform(put("/api/users/me/username").header("Authorization", bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"username\":\"%s\"}".formatted(renamed)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.username").value(renamed))), "$.token");
+
+        // both the old token (same session) and the new one keep working
+        for (String t : List.of(token, fresh)) {
+            mvc.perform(get("/api/users/me").header("Authorization", bearer(t)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.username").value(renamed));
+        }
+        attemptLogin(renamed, PASSWORD).andExpect(status().isOk());
+    }
+
+    // ---------- v3: leaderboard ----------
+
+    private long questionWithDifficulty(String token, String section, String difficulty) throws Exception {
+        String list = json(mvc.perform(get("/api/questions").param("section", section).param("difficulty", difficulty)
+                .header("Authorization", bearer(token))));
+        return ((Number) JsonPath.read(list, "$[0].id")).longValue();
+    }
+
+    @Test
+    void leaderboardRanksByPointsAndRespectsOptOut() throws Exception {
+        String a = uniqueName();
+        String b = uniqueName();
+        registerVerified(a);
+        registerVerified(b);
+        String ta = login(a);
+        String tb = login(b);
+
+        // A: one hard OS topic (3) + one easy DSA problem (1) = 4. B: one medium CN topic = 2.
+        markSolved(ta, questionWithDifficulty(ta, "OS", "HARD"));
+        markSolved(ta, questionWithDifficulty(ta, "DSA", "EASY"));
+        markSolved(tb, questionWithDifficulty(tb, "CN", "MEDIUM"));
+
+        String board = json(mvc.perform(get("/api/leaderboard").param("tz", "Asia/Kolkata").param("limit", "100")
+                        .header("Authorization", bearer(ta)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.me.username").value(a))
+                .andExpect(jsonPath("$.me.points").value(4))
+                .andExpect(jsonPath("$.me.completed").value(2))
+                .andExpect(jsonPath("$.me.currentStreak").value(1))
+                .andExpect(jsonPath("$.me.you").value(true)));
+        List<Integer> rankA = JsonPath.read(board, "$.entries[?(@.username == '" + a + "')].rank");
+        List<Integer> rankB = JsonPath.read(board, "$.entries[?(@.username == '" + b + "')].rank");
+        org.junit.jupiter.api.Assertions.assertTrue(rankA.get(0) < rankB.get(0), "4 points should outrank 2");
+
+        // B opts out: gone from the list, still sees their own points
+        mvc.perform(put("/api/users/me/preferences").header("Authorization", bearer(tb))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"showOnLeaderboard\":false}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.showOnLeaderboard").value(false));
+        mvc.perform(get("/api/leaderboard").param("limit", "100").header("Authorization", bearer(tb)))
+                .andExpect(jsonPath("$.entries[?(@.username == '" + b + "')]", empty()))
+                .andExpect(jsonPath("$.me.rank").value(nullValue()))
+                .andExpect(jsonPath("$.me.listed").value(false))
+                .andExpect(jsonPath("$.me.points").value(2));
+    }
+
+    // ---------- v3: Google sign-in ----------
+
+    @Test
+    void googleSignInCreatesAccountThatPicksAUsername() throws Exception {
+        String sub = "g-" + uniqueName();
+        String email = sub + "@gmail.com";
+        String first = json(googleLogin(sub, email)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.needsUsername").value(true))
+                .andExpect(jsonPath("$.username").value(org.hamcrest.Matchers.startsWith("google-"))));
+        String token = JsonPath.read(first, "$.token");
+
+        // placeholder accounts aren't ranked
+        mvc.perform(get("/api/leaderboard").header("Authorization", bearer(token)))
+                .andExpect(jsonPath("$.me.rank").value(nullValue()));
+
+        // placeholder-style names can't be picked
+        mvc.perform(put("/api/users/me/username").header("Authorization", bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"username\":\"google-123\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("USERNAME_INVALID"));
+
+        String chosen = uniqueName();
+        mvc.perform(put("/api/users/me/username").header("Authorization", bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"username\":\"%s\"}".formatted(chosen)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.needsUsername").value(false));
+
+        // signing in again: same account, no picker
+        String again = json(googleLogin(sub, email)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.username").value(chosen))
+                .andExpect(jsonPath("$.needsUsername").value(false)));
+        mvc.perform(get("/api/users/me").header("Authorization", bearer(JsonPath.read(again, "$.token"))))
+                .andExpect(jsonPath("$.googleLinked").value(true));
+    }
+
+    @Test
+    void googleSignInLinksToAnExistingVerifiedAccount() throws Exception {
+        String name = uniqueName();
+        registerVerified(name);
+        String token = login(name);
+        long qid = firstQuestionId(token);
+        markSolved(token, qid);
+
+        String json = json(googleLogin("g-" + name, emailOf(name).toUpperCase())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.username").value(name))
+                .andExpect(jsonPath("$.needsUsername").value(false)));
+        mvc.perform(get("/api/progress/my-status").header("Authorization", bearer(JsonPath.read(json, "$.token"))))
+                .andExpect(jsonPath("$['" + qid + "'].solved").value(true));
+        // the password still works too
+        attemptLogin(name, PASSWORD).andExpect(status().isOk());
+    }
+
+    @Test
+    void googleSignInTakesOverAnUnverifiedSignUpSafely() throws Exception {
+        String name = uniqueName();
+        register(name, PASSWORD).andExpect(status().isCreated()); // never verified
+
+        googleLogin("g-" + name, emailOf(name))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.needsUsername").value(true));
+        // whoever started that sign-up never proved they own the inbox: their password no longer works
+        attemptLogin(name, PASSWORD).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void googleRejectsBadTokens() throws Exception {
+        mvc.perform(post("/api/auth/google").contentType(MediaType.APPLICATION_JSON).content("{\"credential\":\"nonsense\"}"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("GOOGLE_TOKEN_INVALID"));
+        mvc.perform(post("/api/auth/google").contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .andExpect(status().isBadRequest());
     }
 }

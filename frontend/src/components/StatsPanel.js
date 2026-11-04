@@ -3,12 +3,12 @@ import { DIFFICULTIES, DIFFICULTY_LABEL, ringGradient } from '../utils/stats';
 
 const pct = (a, b) => (b ? Math.round((a / b) * 100) : 0);
 
-const StatsPanel = ({ stats, filtered }) => (
+const StatsPanel = ({ stats, filtered, sectionName = 'Syllabus', verb = 'Solved' }) => (
     <section className="stats" aria-label="Progress summary">
         <div className="card stats-main">
-            <p className="eyebrow">{filtered ? 'Progress (filtered view)' : 'Syllabus progress'}</p>
+            <p className="eyebrow">{sectionName} progress{filtered ? ' (filtered view)' : ''}</p>
             <p className="stats-headline">
-                <strong>{stats.solved}</strong> / {stats.total} solved
+                <strong>{stats.solved}</strong> / {stats.total} {verb.toLowerCase()}
                 <span className="stats-sub"> · {stats.revised} revised</span>
             </p>
             <div className="bar" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={stats.percent}
@@ -38,7 +38,7 @@ const StatsPanel = ({ stats, filtered }) => (
                     <span className="ring-label">done</span>
                 </div>
             </div>
-            <span className="sr-only">{stats.percent}% of questions solved</span>
+            <span className="sr-only">{stats.percent}% of questions {verb.toLowerCase()}</span>
         </div>
     </section>
 );

@@ -20,6 +20,8 @@ public class JwtService {
 
     private static final Logger log = LoggerFactory.getLogger(JwtService.class);
     private static final String SESSION_CLAIM = "sessionId";
+    /** User id. Lets a token survive a username change; tokens from before v3 only carry the username. */
+    private static final String USER_ID_CLAIM = "uid";
 
     private final SecretKey key;
     private final long expirationMs;
@@ -35,12 +37,13 @@ public class JwtService {
         this.expirationMs = expirationMs;
     }
 
-    public IssuedToken issue(String username, String sessionId) {
+    public IssuedToken issue(Long userId, String username, String sessionId) {
         Instant now = Instant.now();
         Instant expiresAt = now.plusMillis(expirationMs);
         String token = Jwts.builder()
                 .setSubject(username)
                 .claim(SESSION_CLAIM, sessionId)
+                .claim(USER_ID_CLAIM, userId)
                 .setIssuedAt(Date.from(now))
                 .setExpiration(Date.from(expiresAt))
                 .signWith(key)
@@ -53,7 +56,9 @@ public class JwtService {
         try {
             Claims claims = Jwts.parserBuilder().setSigningKey(key).build()
                     .parseClaimsJws(token).getBody();
-            return TokenResult.valid(claims.getSubject(), claims.get(SESSION_CLAIM, String.class));
+            Object uid = claims.get(USER_ID_CLAIM);
+            Long userId = uid instanceof Number n ? n.longValue() : null;
+            return TokenResult.valid(userId, claims.getSubject(), claims.get(SESSION_CLAIM, String.class));
         } catch (ExpiredJwtException e) {
             return TokenResult.invalid(AuthErrorCode.TOKEN_EXPIRED);
         } catch (JwtException | IllegalArgumentException e) {
@@ -65,17 +70,17 @@ public class JwtService {
     public record IssuedToken(String token, Instant expiresAt) {
     }
 
-    public record TokenResult(String username, String sessionId, AuthErrorCode error) {
-        static TokenResult valid(String username, String sessionId) {
-            return new TokenResult(username, sessionId, null);
+    public record TokenResult(Long userId, String username, String sessionId, AuthErrorCode error) {
+        static TokenResult valid(Long userId, String username, String sessionId) {
+            return new TokenResult(userId, username, sessionId, null);
         }
 
         static TokenResult invalid(AuthErrorCode error) {
-            return new TokenResult(null, null, error);
+            return new TokenResult(null, null, null, error);
         }
 
         public boolean isValid() {
-            return error == null && username != null;
+            return error == null && (userId != null || username != null);
         }
     }
 }

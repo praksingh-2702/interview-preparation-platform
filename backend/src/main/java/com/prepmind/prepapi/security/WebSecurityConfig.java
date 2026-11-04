@@ -32,11 +32,10 @@ public class WebSecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http,
                                            JwtService jwtService,
-                                           UserRepository userRepository,
-                                           @Value("${app.admin.usernames:}") String[] adminUsernames) throws Exception {
+                                           UserRepository userRepository) throws Exception {
         ProblemJsonSecurityHandlers handlers = new ProblemJsonSecurityHandlers();
         // Created here (not as a @Bean) so Spring Boot does not also register it as a plain servlet filter.
-        AuthTokenFilter tokenFilter = new AuthTokenFilter(jwtService, userRepository, toSet(adminUsernames));
+        AuthTokenFilter tokenFilter = new AuthTokenFilter(jwtService, userRepository);
 
         http
             .cors(Customizer.withDefaults())
@@ -50,9 +49,13 @@ public class WebSecurityConfig {
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/verify-email",
                         "/api/auth/resend-verification", "/api/auth/login", "/api/auth/logout",
-                        "/api/auth/forgot-password", "/api/auth/reset-password").permitAll()
+                        "/api/auth/forgot-password", "/api/auth/reset-password", "/api/auth/google").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/users/username-available").permitAll()
                 .requestMatchers("/actuator/health", "/actuator/health/**", "/error").permitAll()
-                .requestMatchers(HttpMethod.POST, "/api/questions").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.POST, "/api/questions").hasRole("EDITOR")
+                .requestMatchers(HttpMethod.PUT, "/api/questions/**").hasRole("EDITOR")
+                .requestMatchers(HttpMethod.DELETE, "/api/questions/**").hasRole("EDITOR")
+                .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .anyRequest().authenticated()
             )
             .addFilterBefore(tokenFilter, UsernamePasswordAuthenticationFilter.class);

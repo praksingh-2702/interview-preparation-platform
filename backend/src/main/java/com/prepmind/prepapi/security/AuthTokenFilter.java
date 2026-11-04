@@ -17,7 +17,6 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 
 /**
  * Authenticates requests that carry "Authorization: Bearer <jwt>".
@@ -29,18 +28,12 @@ public class AuthTokenFilter extends OncePerRequestFilter {
 
     public static final String AUTH_ERROR_ATTRIBUTE = AuthTokenFilter.class.getName() + ".error";
 
-    private static final List<GrantedAuthority> USER = List.of(new SimpleGrantedAuthority("ROLE_USER"));
-    private static final List<GrantedAuthority> ADMIN = List.of(
-            new SimpleGrantedAuthority("ROLE_USER"), new SimpleGrantedAuthority("ROLE_ADMIN"));
-
     private final JwtService jwtService;
     private final UserRepository userRepository;
-    private final Set<String> adminUsernames;
 
-    public AuthTokenFilter(JwtService jwtService, UserRepository userRepository, Set<String> adminUsernames) {
+    public AuthTokenFilter(JwtService jwtService, UserRepository userRepository) {
         this.jwtService = jwtService;
         this.userRepository = userRepository;
-        this.adminUsernames = adminUsernames;
     }
 
     @Override
@@ -60,7 +53,9 @@ public class AuthTokenFilter extends OncePerRequestFilter {
             return;
         }
 
-        Optional<User> userOpt = userRepository.findByUsername(token.username());
+        Optional<User> userOpt = token.userId() != null
+                ? userRepository.findById(token.userId())
+                : userRepository.findByUsername(token.username());
         if (userOpt.isEmpty()) {
             request.setAttribute(AUTH_ERROR_ATTRIBUTE, AuthErrorCode.TOKEN_INVALID);
             return;
@@ -74,7 +69,10 @@ public class AuthTokenFilter extends OncePerRequestFilter {
             return;
         }
 
-        List<GrantedAuthority> authorities = adminUsernames.contains(user.getUsername()) ? ADMIN : USER;
+        // Read from the database on every request, so a role change applies immediately.
+        List<GrantedAuthority> authorities = user.effectiveRole().authorities().stream()
+                .<GrantedAuthority>map(SimpleGrantedAuthority::new)
+                .toList();
         UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                 new AuthenticatedUser(user.getId(), user.getUsername()), null, authorities);
         authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));

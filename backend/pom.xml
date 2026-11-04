@@ -10,7 +10,7 @@
 	</parent>
 	<groupId>com.prepmind</groupId>
 	<artifactId>prep-api</artifactId>
-	<version>2.0.0</version>
+	<version>3.0.0</version>
 	<name>prep-api</name>
 	<description>FreakCode Top 100 - REST API for DSA interview preparation tracking</description>
 

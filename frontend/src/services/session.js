@@ -1,6 +1,8 @@
 // Session persistence. localStorage can throw (private mode, blocked storage), so every access is guarded.
 const TOKEN_KEY = 'token';
 const USER_KEY = 'username';
+const ROLE_KEY = 'role';
+const NEEDS_USERNAME_KEY = 'needsUsername';
 
 const safeGet = (key) => {
     try { return window.localStorage.getItem(key); } catch { return null; }
@@ -27,14 +29,25 @@ export const getToken = () => safeGet(TOKEN_KEY);
 
 export const getUsername = () => safeGet(USER_KEY);
 
-export const saveSession = (token, username) => {
-    safeSet(TOKEN_KEY, token);
+/** Cached so the right menu shows instantly; the server re-checks the role on every request anyway. */
+export const getRole = () => safeGet(ROLE_KEY) || 'USER';
+
+export const getNeedsUsername = () => safeGet(NEEDS_USERNAME_KEY) === 'true';
+
+/** Stores whichever of username / role / needsUsername are given. */
+export const saveProfile = ({ username, role, needsUsername } = {}) => {
     if (username) safeSet(USER_KEY, username);
+    if (role) safeSet(ROLE_KEY, role);
+    if (typeof needsUsername === 'boolean') safeSet(NEEDS_USERNAME_KEY, String(needsUsername));
+};
+
+export const saveSession = (token, username, extras = {}) => {
+    safeSet(TOKEN_KEY, token);
+    saveProfile({ username, ...extras });
 };
 
 export const clearSession = () => {
-    safeRemove(TOKEN_KEY);
-    safeRemove(USER_KEY);
+    [TOKEN_KEY, USER_KEY, ROLE_KEY, NEEDS_USERNAME_KEY].forEach(safeRemove);
 };
 
 /** True when a token exists and is not known to be expired. */

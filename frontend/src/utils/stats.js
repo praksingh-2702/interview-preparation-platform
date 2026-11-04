@@ -23,14 +23,17 @@ export const getCompanies = (questions) => {
     return [...set].sort((a, b) => a.localeCompare(b));
 };
 
-export const STATUS_FILTERS = [
+/** Status filter options; `verb` is "Solved" for DSA and "Learned" for theory sections. */
+export const statusFilters = (verb = 'Solved') => [
     { value: '', label: 'All statuses' },
-    { value: 'unsolved', label: 'Unsolved' },
-    { value: 'solved', label: 'Solved' },
+    { value: 'unsolved', label: `Not ${verb.toLowerCase()}` },
+    { value: 'solved', label: verb },
     { value: 'due', label: 'Due for revision' },
     { value: 'revised', label: 'Revised' },
     { value: 'notes', label: 'Has notes' },
 ];
+
+export const STATUS_FILTERS = statusFilters('Solved');
 
 /** Scope filters: these also change the progress numbers at the top. */
 export const filterQuestions = (questions, { company, difficulty }) =>
@@ -55,7 +58,8 @@ export const applyListFilters = (questions, { search, status }, { progressMap = 
     const term = (search || '').trim().toLowerCase();
     return questions.filter((q) => {
         if (term) {
-            const haystack = [q.title, q.description, q.category, ...(q.companies || [])].join(' ').toLowerCase();
+            const haystack = [q.title, q.description, q.category, ...(q.companies || [])]
+                .filter(Boolean).join(' ').toLowerCase();
             if (!haystack.includes(term)) return false;
         }
         return matchesStatus(progressMap[String(q.id)], status, !!notes[String(q.id)], now);

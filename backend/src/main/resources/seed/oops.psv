@@ -1,0 +1,40 @@
+# OOPS: category | difficulty | topic | GeeksforGeeks article
+Basics | EASY | Introduction to object-oriented programming | https://www.geeksforgeeks.org/dsa/introduction-of-object-oriented-programming/
+Basics | EASY | OOP concepts in Java | https://www.geeksforgeeks.org/java/object-oriented-programming-oops-concept-in-java/
+Basics | EASY | OOP concepts in C++ | https://www.geeksforgeeks.org/cpp/object-oriented-programming-in-cpp/
+Basics | EASY | Class vs interface (Java) | https://www.geeksforgeeks.org/java/differences-between-interface-and-class-in-java/
+Basics | MEDIUM | Types of classes in Java | https://www.geeksforgeeks.org/java/types-of-classes-in-java/
+Encapsulation & Abstraction | EASY | Encapsulation | https://www.geeksforgeeks.org/java/encapsulation-in-java/
+Encapsulation & Abstraction | EASY | Abstraction | https://www.geeksforgeeks.org/cpp/abstraction-in-cpp/
+Encapsulation & Abstraction | MEDIUM | Abstraction vs encapsulation | https://www.geeksforgeeks.org/java/difference-between-abstraction-and-encapsulation-in-java-with-examples/
+Encapsulation & Abstraction | MEDIUM | Data hiding vs abstraction | https://www.geeksforgeeks.org/java/difference-between-data-hiding-and-abstraction-in-java/
+Encapsulation & Abstraction | EASY | Access and non-access modifiers | https://www.geeksforgeeks.org/java/access-and-non-access-modifiers-in-java/
+Inheritance | EASY | Inheritance and its types | https://www.geeksforgeeks.org/java/inheritance-in-java/
+Inheritance | MEDIUM | Inheritance in C++ vs Java | https://www.geeksforgeeks.org/java/comparison-of-inheritance-in-c-and-java/
+Inheritance | MEDIUM | Interfaces and inheritance (multiple inheritance in Java) | https://www.geeksforgeeks.org/java/interfaces-and-inheritance-in-java/
+Inheritance | HARD | Diamond problem | https://www.geeksforgeeks.org/cpp/diamond-problem-in-cpp/
+Inheritance | MEDIUM | Using final with inheritance | https://www.geeksforgeeks.org/java/using-final-with-inheritance-in-java/
+Polymorphism | EASY | Polymorphism (compile-time vs runtime) | https://www.geeksforgeeks.org/java/polymorphism-in-java/
+Polymorphism | EASY | Inheritance vs polymorphism | https://www.geeksforgeeks.org/cpp/difference-between-inheritance-and-polymorphism/
+Polymorphism | MEDIUM | Method overloading vs overriding (Java) | https://www.geeksforgeeks.org/java/difference-between-method-overloading-and-method-overriding-in-java/
+Polymorphism | MEDIUM | Function overloading vs overriding (C++) | https://www.geeksforgeeks.org/cpp/function-overloading-vs-function-overriding-in-cpp/
+Polymorphism | MEDIUM | Virtual functions | https://www.geeksforgeeks.org/cpp/virtual-function-cpp/
+Polymorphism | MEDIUM | Pure virtual functions and abstract classes | https://www.geeksforgeeks.org/cpp/pure-virtual-functions-and-abstract-classes/
+Polymorphism | MEDIUM | Interfaces and polymorphism | https://www.geeksforgeeks.org/java/interfaces-and-polymorphism-in-java/
+Abstract Classes & Interfaces | EASY | Interfaces in Java | https://www.geeksforgeeks.org/java/interfaces-in-java/
+Abstract Classes & Interfaces | MEDIUM | Abstract class vs interface | https://www.geeksforgeeks.org/java/difference-between-abstract-class-and-interface-in-java/
+Constructors & Members | EASY | Constructors | https://www.geeksforgeeks.org/cpp/constructors-c/
+Constructors & Members | EASY | Types of constructors | https://www.geeksforgeeks.org/cpp/types-of-constructors-in-cpp/
+Constructors & Members | MEDIUM | Copy constructor | https://www.geeksforgeeks.org/cpp/copy-constructor-in-cpp/
+Constructors & Members | EASY | Constructor vs destructor | https://www.geeksforgeeks.org/cpp/difference-between-constructor-and-destructor-in-c/
+Constructors & Members | HARD | Copy constructor vs assignment operator | https://www.geeksforgeeks.org/cpp/copy-constructor-vs-assignment-operator-in-c/
+Constructors & Members | MEDIUM | Friend class and friend function | https://www.geeksforgeeks.org/cpp/friend-class-function-cpp/
+Constructors & Members | MEDIUM | final vs static | https://www.geeksforgeeks.org/java/java-final-vs-static-access-modifier/
+Design | MEDIUM | Object-oriented design (OOD) | https://www.geeksforgeeks.org/system-design/oops-object-oriented-design/
+Design | MEDIUM | OOP concepts for system design | https://www.geeksforgeeks.org/system-design/object-oriented-programingoop-concepts-for-designing-sytems/
+Design | MEDIUM | Creational design patterns | https://www.geeksforgeeks.org/system-design/creational-design-pattern/
+Design | MEDIUM | Singleton vs factory pattern | https://www.geeksforgeeks.org/java/difference-between-singleton-and-factory-design-pattern-in-java/
+Design | HARD | Gang of Four design patterns | https://www.geeksforgeeks.org/system-design/gang-of-four-gof-design-patterns/
+Design | HARD | Low-level design (LLD) | https://www.geeksforgeeks.org/system-design/what-is-low-level-design-or-lld-learn-system-design/
+Revision | MEDIUM | Top OOPs interview questions | https://www.geeksforgeeks.org/interview-prep/oops-interview-questions/
+Revision | HARD | Design patterns interview questions | https://www.geeksforgeeks.org/interview-prep/design-patterns-best-practices-interview-questions-oops/

@@ -5,25 +5,27 @@ import com.prepmind.prepapi.dto.LoginRequest;
 import com.prepmind.prepapi.dto.RegisterRequest;
 import com.prepmind.prepapi.dto.RegisterResponse;
 import com.prepmind.prepapi.dto.ResetPasswordRequest;
-import com.prepmind.prepapi.dto.UserResponse;
 import com.prepmind.prepapi.dto.VerifyEmailRequest;
 import com.prepmind.prepapi.entity.OtpPurpose;
+import com.prepmind.prepapi.entity.Role;
 import com.prepmind.prepapi.entity.User;
 import com.prepmind.prepapi.exception.ApiException;
 import com.prepmind.prepapi.exception.TooManyRequestsException;
+import com.prepmind.prepapi.google.GoogleIdentity;
+import com.prepmind.prepapi.google.GoogleTokenVerifier;
 import com.prepmind.prepapi.repository.UserRepository;
 import com.prepmind.prepapi.security.JwtService;
 import com.prepmind.prepapi.security.LoginAttemptService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
+import java.util.HexFormat;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
@@ -34,6 +36,8 @@ import java.util.stream.Collectors;
 /**
  * Account lifecycle: register → verify email with a 6-digit code → log in.
  * Forgot password works the same way (code by email → new password).
+ * Sign in with Google skips the code (Google has verified the email) and links to an existing
+ * account with the same email.
  */
 @Service
 public class AuthService {
@@ -48,7 +52,9 @@ public class AuthService {
     private final LoginAttemptService loginAttempts;
     private final OtpService otpService;
     private final Set<String> allowedEmailDomains;
-    private final Set<String> adminUsernames;
+    private final AdminBootstrap adminBootstrap;
+    private final GoogleTokenVerifier googleVerifier;
+    private final java.security.SecureRandom random = new java.security.SecureRandom();
     /** Checked when the account doesn't exist, so response time doesn't reveal which accounts are real. */
     private final String dummyHash;
 
@@ -58,14 +64,16 @@ public class AuthService {
                        LoginAttemptService loginAttempts,
                        OtpService otpService,
                        @Value("${app.auth.allowed-email-domains:}") String[] allowedEmailDomains,
-                       @Value("${app.admin.usernames:}") String[] adminUsernames) {
+                       AdminBootstrap adminBootstrap,
+                       GoogleTokenVerifier googleVerifier) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.loginAttempts = loginAttempts;
         this.otpService = otpService;
         this.allowedEmailDomains = normalize(allowedEmailDomains, true);
-        this.adminUsernames = normalize(adminUsernames, false);
+        this.adminBootstrap = adminBootstrap;
+        this.googleVerifier = googleVerifier;
         this.dummyHash = passwordEncoder.encode(UUID.randomUUID().toString());
     }
 
@@ -78,16 +86,9 @@ public class AuthService {
      */
     @Transactional(noRollbackFor = ApiException.class)
     public RegisterResponse register(RegisterRequest request) {
-        String username = request.username().trim();
+        String username = Usernames.requireValid(request.username());
         String email = normalizeEmail(request.email());
-
-        if (!allowedEmailDomains.isEmpty()) {
-            String domain = email.substring(email.lastIndexOf('@') + 1);
-            if (!allowedEmailDomains.contains(domain)) {
-                throw ApiException.badRequest("EMAIL_DOMAIN_NOT_ALLOWED",
-                        "Registration is limited to these email domains: " + String.join(", ", allowedEmailDomains));
-            }
-        }
+        checkDomain(email);
 
         Optional<User> byEmail = userRepository.findByEmailIgnoreCase(email);
         if (byEmail.isPresent() && byEmail.get().hasVerifiedEmail()) {
@@ -106,8 +107,8 @@ public class AuthService {
         user.setPassword(passwordEncoder.encode(request.password()));
         user.setEmailVerified(false);
         user.setCurrentSessionId(null);
-        if (user.getRoles() == null || user.getRoles().isEmpty()) {
-            user.setRoles(new HashSet<>(Set.of("ROLE_USER")));
+        if (user.getRole() == null) {
+            user.setRole(Role.USER);
         }
         userRepository.save(user);
 
@@ -177,10 +178,86 @@ public class AuthService {
                     .with("email", user.getEmail());
         }
 
+        return startSession(user);
+    }
+
+    // ------------------------------------------------------------------ Google
+
+    /**
+     * Signs in with a Google ID token. Matches the Google account first, then the email: an existing
+     * account with that email is linked (same account, same progress). A brand-new user gets a
+     * placeholder username and needsUsername=true, so the app asks them to pick one.
+     */
+    @Transactional(noRollbackFor = ApiException.class)
+    public AuthResponse googleLogin(String credential) {
+        if (!googleVerifier.isEnabled()) {
+            throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "GOOGLE_SIGNIN_DISABLED",
+                    "Google sign-in isn't set up on this server yet.");
+        }
+        GoogleIdentity google = googleVerifier.verify(credential);
+        if (!google.emailVerified()) {
+            throw ApiException.unauthorized("GOOGLE_EMAIL_UNVERIFIED", "Your Google account's email isn't verified.");
+        }
+        String email = normalizeEmail(google.email());
+        checkDomain(email);
+
+        User user = userRepository.findByGoogleSubject(google.subject())
+                .or(() -> userRepository.findByEmailIgnoreCase(email))
+                .orElse(null);
+
+        if (user == null) {
+            user = new User();
+            user.setEmail(email);
+            user.setUsername(placeholderUsername());
+            user.setPassword(passwordEncoder.encode(UUID.randomUUID().toString())); // no password until they set one
+            user.setRole(Role.USER);
+            user.setNeedsUsername(true);
+            log.info("New account via Google for {}", email);
+        } else if (!user.hasVerifiedEmail()) {
+            // A sign-up that was never verified: whoever started it never proved they own this inbox,
+            // so its password (and chosen username) must not carry over to the real owner.
+            user.setPassword(passwordEncoder.encode(UUID.randomUUID().toString()));
+            user.setNeedsUsername(true);
+        }
+        user.setGoogleSubject(google.subject());
+        user.setEmailVerified(true);
+        userRepository.save(user);
+        return startSession(user);
+    }
+
+    private AuthResponse startSession(User user) {
+        adminBootstrap.apply(user);
         String sessionId = UUID.randomUUID().toString();
         user.setCurrentSessionId(sessionId); // invalidates tokens issued to any other device
-        JwtService.IssuedToken token = jwtService.issue(user.getUsername(), sessionId);
-        return new AuthResponse(token.token(), user.getUsername(), token.expiresAt());
+        return tokenFor(user);
+    }
+
+    /** A fresh token for the user's current session (also used after a username change). */
+    public AuthResponse tokenFor(User user) {
+        JwtService.IssuedToken token = jwtService.issue(user.getId(), user.getUsername(), user.getCurrentSessionId());
+        return new AuthResponse(token.token(), user.getUsername(), token.expiresAt(),
+                user.mustChooseUsername(), user.effectiveRole().name());
+    }
+
+    private String placeholderUsername() {
+        String name;
+        do {
+            byte[] bytes = new byte[5];
+            random.nextBytes(bytes);
+            name = Usernames.PLACEHOLDER_PREFIX + HexFormat.of().formatHex(bytes);
+        } while (userRepository.existsByUsernameIgnoreCase(name));
+        return name;
+    }
+
+    private void checkDomain(String email) {
+        if (allowedEmailDomains.isEmpty()) {
+            return;
+        }
+        String domain = email.substring(email.lastIndexOf('@') + 1);
+        if (!allowedEmailDomains.contains(domain)) {
+            throw ApiException.badRequest("EMAIL_DOMAIN_NOT_ALLOWED",
+                    "Sign-up is limited to these email domains: " + String.join(", ", allowedEmailDomains));
+        }
     }
 
     /** Server-side logout: the current token stops working immediately. */
@@ -214,17 +291,6 @@ public class AuthService {
         user.setPassword(passwordEncoder.encode(request.newPassword()));
         user.setCurrentSessionId(null); // sign out everywhere
         log.info("Password reset for '{}'", user.getUsername());
-    }
-
-    // ------------------------------------------------------------------ profile
-
-    @Transactional(readOnly = true)
-    public UserResponse currentUser(Long userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> ApiException.notFound("User not found."));
-        List<String> roles = adminUsernames.contains(user.getUsername())
-                ? List.of("ROLE_USER", "ROLE_ADMIN") : List.of("ROLE_USER");
-        return new UserResponse(user.getId(), user.getUsername(), user.getEmail(), roles);
     }
 
     private static String normalizeEmail(String email) {

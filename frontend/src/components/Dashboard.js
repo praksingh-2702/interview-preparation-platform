@@ -2,19 +2,21 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import api, { getErrorMessage } from '../services/api';
 import {
     applyListFilters, computeStats, DIFFICULTIES, DIFFICULTY_LABEL, filterQuestions, getCompanies, getTopics,
-    STATUS_FILTERS,
+    statusFilters,
 } from '../utils/stats';
+import { loadSection, saveSection, SECTION_BY_ID, SECTIONS, sectionOf } from '../utils/sections';
 import { browserTimeZone, isDue, parseTime } from '../utils/time';
 import ActivityPanel from './ActivityPanel';
-import Brand from './Brand';
 import NotesModal from './NotesModal';
 import RevisionQueue from './RevisionQueue';
+import SectionTabs from './SectionTabs';
 import StatsPanel from './StatsPanel';
 import TopicSection from './TopicSection';
 
 const EMPTY_FILTERS = { company: '', difficulty: '', search: '', status: '' };
 
-const Dashboard = ({ username, onLogout }) => {
+/** The practice sheet. The top bar lives in App; reloadKey changes when an editor edits questions. */
+const Dashboard = ({ reloadKey = 0 }) => {
     const [questions, setQuestions] = useState([]);
     const [progressMap, setProgressMap] = useState({});
     const [notes, setNotes] = useState({});
@@ -31,6 +33,8 @@ const Dashboard = ({ username, onLogout }) => {
     const [notesError, setNotesError] = useState('');
     const [now, setNow] = useState(() => Date.now());
     const [slowLoad, setSlowLoad] = useState(false);
+    const [section, setSection] = useState(loadSection);
+    const initializedSections = useRef(new Set());
 
     // Latest progress, readable from the stable callbacks without re-rendering every row.
     const progressRef = useRef(progressMap);
@@ -59,8 +63,6 @@ const Dashboard = ({ username, onLogout }) => {
             const qs = Array.isArray(qRes.data) ? qRes.data : [];
             setQuestions(qs);
             setProgressMap(pRes.data && typeof pRes.data === 'object' ? pRes.data : {});
-            const first = getTopics(qs)[0];
-            setExpanded((prev) => (Object.keys(prev).length || !first ? prev : { [first]: true }));
             setNow(Date.now());
         } catch (err) {
             if (err.response?.status !== 401) {
@@ -76,7 +78,7 @@ const Dashboard = ({ username, onLogout }) => {
         refreshStats();
     }, [refreshStats]);
 
-    useEffect(() => { load(); }, [load]);
+    useEffect(() => { load(); }, [load, reloadKey]);
 
     // Keep "due" badges honest if the tab stays open for a long time.
     useEffect(() => {
@@ -188,9 +190,25 @@ const Dashboard = ({ username, onLogout }) => {
         setExpanded((prev) => ({ ...prev, [topic]: !prev[topic] }));
     }, []);
 
-    const topics = useMemo(() => getTopics(questions), [questions]);
-    const companies = useMemo(() => getCompanies(questions), [questions]);
-    const scoped = useMemo(() => filterQuestions(questions, filters), [questions, filters]);
+    const meta = SECTION_BY_ID[section] || SECTIONS[0];
+    const sectionQuestions = useMemo(
+        () => questions.filter((q) => sectionOf(q) === section),
+        [questions, section]
+    );
+    const sectionCounts = useMemo(() => {
+        const counts = {};
+        SECTIONS.forEach((s) => { counts[s.id] = { done: 0, total: 0 }; });
+        questions.forEach((q) => {
+            const c = counts[sectionOf(q)];
+            if (!c) return;
+            c.total += 1;
+            if (progressMap[String(q.id)]?.solved) c.done += 1;
+        });
+        return counts;
+    }, [questions, progressMap]);
+    const topics = useMemo(() => getTopics(sectionQuestions), [sectionQuestions]);
+    const companies = useMemo(() => getCompanies(sectionQuestions), [sectionQuestions]);
+    const scoped = useMemo(() => filterQuestions(sectionQuestions, filters), [sectionQuestions, filters]);
     const visible = useMemo(
         () => applyListFilters(scoped, filters, { progressMap, notes, now }),
         [scoped, filters, progressMap, notes, now]
@@ -203,6 +221,19 @@ const Dashboard = ({ username, onLogout }) => {
         [questions, progressMap, now]
     );
 
+    // The first time each section is shown, open its first topic so the page isn't a wall of headers.
+    useEffect(() => {
+        if (!topics.length || initializedSections.current.has(section)) return;
+        initializedSections.current.add(section);
+        setExpanded((prev) => (topics.some((t) => prev[t]) ? prev : { ...prev, [topics[0]]: true }));
+    }, [section, topics]);
+
+    const changeSection = useCallback((id) => {
+        setSection(id);
+        saveSection(id);
+        setFilters(EMPTY_FILTERS);
+    }, []);
+
     const scopeActive = !!(filters.company || filters.difficulty);
     const listActive = !!(filters.search.trim() || filters.status);
     const anyFilter = scopeActive || listActive;
@@ -212,17 +243,7 @@ const Dashboard = ({ username, onLogout }) => {
     const notesQuestion = notesFor !== null ? questions.find((q) => q.id === notesFor) : null;
 
     return (
-        <div className="app-shell">
-            <header className="topbar">
-                <div className="container topbar-inner">
-                    <Brand as="h1" />
-                    <div className="topbar-user">
-                        {username && <span className="username">@{username}</span>}
-                        <button type="button" className="btn btn-ghost" onClick={onLogout}>Log out</button>
-                    </div>
-                </div>
-            </header>
-
+        <>
             <main className="container main">
                 {loading && (
                     <div className="loading" role="status">
@@ -244,7 +265,12 @@ const Dashboard = ({ username, onLogout }) => {
 
                 {!loading && !loadError && (
                     <>
-                        <StatsPanel stats={stats} filtered={scopeActive} />
+                        {/* One heatmap for all four sections, above the section switcher. */}
+                        {activity && <div className="overview-block"><ActivityPanel stats={activity} /></div>}
+
+                        <SectionTabs active={section} counts={sectionCounts} onChange={changeSection} />
+
+                        <StatsPanel stats={stats} filtered={scopeActive} sectionName={meta.name} verb={meta.verb} />
 
                         <div className="today-grid">
                             <RevisionQueue
@@ -254,28 +280,30 @@ const Dashboard = ({ username, onLogout }) => {
                                 onReview={handleReview}
                                 onShowAll={() => setFilters((f) => ({ ...f, status: 'due' }))}
                             />
-                            {activity && <ActivityPanel stats={activity} />}
                         </div>
 
                         <div className="card toolbar">
                             <label className="search">
-                                <span className="sr-only">Search problems</span>
-                                <input type="search" placeholder="Search problems, topics, companies…"
+                                <span className="sr-only">Search {meta.label}</span>
+                                <input type="search"
+                                       placeholder={meta.theory ? `Search ${meta.label} topics…` : 'Search problems, topics, companies…'}
                                        value={filters.search} onChange={setFilter('search')} />
                             </label>
                             <label className="select">
                                 <span className="sr-only">Status</span>
                                 <select value={filters.status} onChange={setFilter('status')}>
-                                    {STATUS_FILTERS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+                                    {statusFilters(meta.verb).map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
                                 </select>
                             </label>
-                            <label className="select">
-                                <span className="sr-only">Company</span>
-                                <select value={filters.company} onChange={setFilter('company')}>
-                                    <option value="">All companies</option>
-                                    {companies.map((c) => <option key={c} value={c}>{c}</option>)}
-                                </select>
-                            </label>
+                            {companies.length > 0 && (
+                                <label className="select">
+                                    <span className="sr-only">Company</span>
+                                    <select value={filters.company} onChange={setFilter('company')}>
+                                        <option value="">All companies</option>
+                                        {companies.map((c) => <option key={c} value={c}>{c}</option>)}
+                                    </select>
+                                </label>
+                            )}
                             <label className="select">
                                 <span className="sr-only">Difficulty</span>
                                 <select value={filters.difficulty} onChange={setFilter('difficulty')}>
@@ -294,11 +322,15 @@ const Dashboard = ({ username, onLogout }) => {
                         </div>
 
                         {listActive && visible.length > 0 && (
-                            <p className="result-count">{visible.length} {visible.length === 1 ? 'problem' : 'problems'} match</p>
+                            <p className="result-count">
+                                {visible.length} {meta.theory ? (visible.length === 1 ? 'question' : 'questions') : (visible.length === 1 ? 'problem' : 'problems')} match
+                            </p>
                         )}
 
                         {visible.length === 0 ? (
-                            <p className="empty">No problems match these filters.</p>
+                            <p className="empty">{sectionQuestions.length === 0
+                                ? `No ${meta.label} questions yet.`
+                                : 'Nothing matches these filters.'}</p>
                         ) : (
                             <div className="topics">
                                 {topics.map((topic) => {
@@ -313,6 +345,7 @@ const Dashboard = ({ username, onLogout }) => {
                                             notes={notes}
                                             saving={saving}
                                             now={now}
+                                            verb={meta.verb}
                                             // While searching or filtering by status, show every match.
                                             expanded={listActive || !!expanded[topic]}
                                             onToggleExpanded={toggleExpanded}
@@ -340,7 +373,7 @@ const Dashboard = ({ username, onLogout }) => {
             )}
 
             {toast && <div className="toast" role="alert">{toast}</div>}
-        </div>
+        </>
     );
 };
 

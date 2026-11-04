@@ -1,6 +1,7 @@
 import React from 'react';
 import { DIFFICULTY_LABEL } from '../utils/stats';
 import { parseTime, relativeDay } from '../utils/time';
+import { sectionOf } from '../utils/sections';
 
 const VISIBLE = 5;
 
@@ -17,7 +18,7 @@ const RevisionQueue = ({ dueQuestions, progressMap, reviewing, onReview, onShowA
 
             {dueQuestions.length === 0 ? (
                 <p className="revision-empty">
-                    Nothing due. Solved problems come back here after 1, 3, 7, 14, 30 and 60 days.
+                    Nothing due. Solved problems and topics you've read come back here after 1, 3, 7, 14, 30 and 60 days.
                 </p>
             ) : (
                 <ul className="revision-list">
@@ -31,6 +32,7 @@ const RevisionQueue = ({ dueQuestions, progressMap, reviewing, onReview, onShowA
                                         {q.title}
                                     </a>
                                     <span className="revision-meta">
+                                        <span className="pill pill-section">{sectionOf(q)}</span>
                                         <span className={`pill pill-${q.difficulty.toLowerCase()}`}>{DIFFICULTY_LABEL[q.difficulty]}</span>
                                         due {relativeDay(parseTime(status?.nextReviewAt))}
                                     </span>
@@ -48,7 +50,7 @@ const RevisionQueue = ({ dueQuestions, progressMap, reviewing, onReview, onShowA
             )}
             {remaining > 0 && (
                 <button type="button" className="btn btn-ghost btn-small revision-more" onClick={onShowAll}>
-                    Show all {dueQuestions.length} due problems
+                    Show all {dueQuestions.length} due
                 </button>
             )}
         </section>

@@ -3,6 +3,7 @@ package com.prepmind.prepapi.repository;
 import com.prepmind.prepapi.dto.NoteResponse;
 import com.prepmind.prepapi.entity.Note;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -16,4 +17,8 @@ public interface NoteRepository extends JpaRepository<Note, Long> {
     @Query("SELECT new com.prepmind.prepapi.dto.NoteResponse(n.question.id, n.content, n.solutionUrl, n.updatedAt) "
             + "FROM Note n WHERE n.user.id = :userId")
     List<NoteResponse> findResponsesByUserId(@Param("userId") Long userId);
+
+    @Modifying
+    @Query("DELETE FROM Note n WHERE n.question.id = :questionId")
+    int deleteByQuestionId(@Param("questionId") Long questionId);
 }

@@ -14,7 +14,7 @@ public class MailConfig {
     @Bean
     public EmailSender emailSender(@Value("${app.mail.brevo-api-key:}") String apiKey,
                                    @Value("${app.mail.from:}") String from,
-                                   @Value("${app.mail.from-name:FreakCode Top 100}") String fromName) {
+                                   @Value("${app.mail.from-name:FreakCode}") String fromName) {
         if (apiKey == null || apiKey.isBlank()) {
             log.warn("BREVO_API_KEY is not set: emails (OTP codes) will only be written to the log.");
             return new LoggingEmailSender();

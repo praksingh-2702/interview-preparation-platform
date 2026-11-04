@@ -1,17 +1,14 @@
 package com.prepmind.prepapi.service;
 
 import com.prepmind.prepapi.dto.StatsResponse;
-import com.prepmind.prepapi.repository.ProgressEventRepository;
 import com.prepmind.prepapi.repository.ProgressRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
-import java.time.DateTimeException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -23,25 +20,28 @@ public class StatsService {
 
     private static final int HEATMAP_DAYS = 365;
 
-    private final ProgressEventRepository eventRepository;
     private final ProgressRepository progressRepository;
     private final Clock clock;
 
-    public StatsService(ProgressEventRepository eventRepository, ProgressRepository progressRepository, Clock clock) {
-        this.eventRepository = eventRepository;
+    public StatsService(ProgressRepository progressRepository, Clock clock) {
         this.progressRepository = progressRepository;
         this.clock = clock;
     }
 
-    /** @param timezone IANA zone from the browser (e.g. Asia/Kolkata) so "today" matches the user's day. */
+    /**
+     * Heatmap and streaks count ticked rows only: one per question currently marked Solved (DSA) or
+     * Learned (OOPS / OS / CN), on the day it was ticked. Unticking removes it again. Revised ticks and
+     * revision-queue reviews don't count.
+     *
+     * @param timezone IANA zone from the browser (e.g. Asia/Kolkata) so "today" matches the user's day. */
     @Transactional(readOnly = true)
     public StatsResponse stats(Long userId, String timezone) {
-        ZoneId zone = parseZone(timezone);
+        ZoneId zone = Zones.parse(timezone);
         Instant now = clock.instant();
         LocalDate today = LocalDate.ofInstant(now, zone);
         LocalDate from = today.minusDays(HEATMAP_DAYS - 1L);
 
-        Map<LocalDate, Long> perDay = eventRepository.findTimestampsByUserId(userId).stream()
+        Map<LocalDate, Long> perDay = progressRepository.findSolvedTimestampsByUserId(userId).stream()
                 .map(ts -> LocalDate.ofInstant(ts, zone))
                 .collect(Collectors.groupingBy(Function.identity(), TreeMap::new, Collectors.counting()));
 
@@ -57,16 +57,5 @@ public class StatsService {
                 perDay.size(),
                 progressRepository.countDue(userId, now),
                 zone.getId());
-    }
-
-    private static ZoneId parseZone(String timezone) {
-        if (timezone == null || timezone.isBlank()) {
-            return ZoneOffset.UTC;
-        }
-        try {
-            return ZoneId.of(timezone.trim());
-        } catch (DateTimeException e) {
-            return ZoneOffset.UTC;
-        }
     }
 }

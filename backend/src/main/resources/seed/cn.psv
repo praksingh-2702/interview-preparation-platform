@@ -1,0 +1,39 @@
+# Computer Networks: category | difficulty | topic | GeeksforGeeks article
+Fundamentals | EASY | Basic networking terminology | https://www.geeksforgeeks.org/computer-networks/introduction-to-basic-networking-terminology/
+Fundamentals | EASY | Network topologies | https://www.geeksforgeeks.org/computer-networks/types-of-network-topology/
+Fundamentals | EASY | Network devices (hub, repeater, bridge, switch, router, gateway) | https://www.geeksforgeeks.org/computer-networks/network-devices-hub-repeater-bridge-switch-router-gateways/
+Fundamentals | EASY | Hub vs switch vs router | https://www.geeksforgeeks.org/computer-networks/difference-between-hub-switch-and-router/
+Models | EASY | OSI model vs TCP/IP model | https://www.geeksforgeeks.org/computer-networks/difference-between-osi-model-and-tcp-ip-model/
+Models | MEDIUM | OSI, TCP/IP and hybrid models | https://www.geeksforgeeks.org/computer-networks/osi-tcp-ip-and-hybrid-models/
+Transport Layer | EASY | TCP vs UDP | https://www.geeksforgeeks.org/computer-networks/differences-between-tcp-and-udp/
+Transport Layer | EASY | Transmission Control Protocol (TCP) | https://www.geeksforgeeks.org/computer-networks/what-is-transmission-control-protocol-tcp/
+Transport Layer | MEDIUM | TCP three-way handshake | https://www.geeksforgeeks.org/computer-networks/tcp-connection-establishment/
+Transport Layer | MEDIUM | Sliding window protocol | https://www.geeksforgeeks.org/computer-networks/sliding-window-protocol-set-1/
+Transport Layer | HARD | TCP congestion control | https://www.geeksforgeeks.org/computer-networks/tcp-congestion-control/
+Transport Layer | EASY | Ports in networking | https://www.geeksforgeeks.org/computer-networks/what-is-ports-in-networking/
+Transport Layer | EASY | Common TCP and UDP ports | https://www.geeksforgeeks.org/computer-networks/various-tcp-and-udp-ports/
+Network Layer | MEDIUM | Network layer in the OSI model | https://www.geeksforgeeks.org/computer-networks/network-layer-in-osi-model/
+Network Layer | EASY | IPv4 | https://www.geeksforgeeks.org/computer-networks/what-is-ipv4/
+Network Layer | EASY | IPv4 vs IPv6 | https://www.geeksforgeeks.org/computer-networks/differences-between-ipv4-and-ipv6/
+Network Layer | MEDIUM | Subnetting | https://www.geeksforgeeks.org/computer-networks/introduction-to-subnetting/
+Network Layer | MEDIUM | Subnet mask and CIDR cheat sheet | https://www.geeksforgeeks.org/computer-networks/subnet-cheat-sheet/
+Network Layer | EASY | MAC address vs IP address | https://www.geeksforgeeks.org/difference-between-mac-address-and-ip-address/
+Network Layer | MEDIUM | Address Resolution Protocol (ARP) | https://www.geeksforgeeks.org/arp-protocol/
+Network Layer | MEDIUM | ARP vs RARP | https://www.geeksforgeeks.org/computer-networks/difference-between-arp-and-rarp/
+Network Layer | MEDIUM | Network Address Translation (NAT) | https://www.geeksforgeeks.org/network-address-translation-nat/
+Network Layer | MEDIUM | Network layer protocols (IP, ICMP, ARP, DHCP) | https://www.geeksforgeeks.org/computer-networks/network-layer-protocols/
+Routing | EASY | What is routing? | https://www.geeksforgeeks.org/computer-networks/what-is-routing/
+Routing | HARD | Distance vector vs link state routing | https://www.geeksforgeeks.org/computer-networks/difference-between-distance-vector-routing-and-link-state-routing/
+Routing | MEDIUM | RIP vs OSPF | https://www.geeksforgeeks.org/computer-networks/difference-between-rip-and-ospf/
+Routing | HARD | Border Gateway Protocol (BGP) | https://www.geeksforgeeks.org/computer-networks/border-gateway-protocol-bgp/
+Application Layer | EASY | Application layer protocols | https://www.geeksforgeeks.org/computer-networks/application-layer-protocols-in-tcp-ip/
+Application Layer | EASY | DNS vs DHCP | https://www.geeksforgeeks.org/difference-between-dns-and-dhcp/
+Application Layer | EASY | HTTP | https://www.geeksforgeeks.org/html/what-is-http/
+Application Layer | EASY | HTTP vs HTTPS | https://www.geeksforgeeks.org/computer-networks/difference-between-http-and-https/
+Application Layer | MEDIUM | What happens when you type a URL? | https://www.geeksforgeeks.org/computer-networks/what-happens-when-we-type-a-url/
+Security | MEDIUM | SSL/TLS and digital certificates | https://www.geeksforgeeks.org/ethical-hacking/how-ssl-tls-certificates-and-digital-signatures-secure-your-online-activities/
+Security | MEDIUM | Symmetric vs asymmetric encryption | https://www.geeksforgeeks.org/computer-networks/difference-between-symmetric-and-asymmetric-key-encryption/
+Security | EASY | Public key vs private key | https://www.geeksforgeeks.org/computer-networks/difference-between-private-key-and-public-key/
+Security | MEDIUM | Cryptography terminology | https://www.geeksforgeeks.org/computer-networks/introduction-to-crypto-terminologies/
+Revision | MEDIUM | Transport and application layer interview questions | https://www.geeksforgeeks.org/computer-networks/transport-application-layer-interview-questions-computer-networks/
+Revision | EASY | Computer networks cheat sheet | https://www.geeksforgeeks.org/computer-networks/computer-network-cheat-sheet/

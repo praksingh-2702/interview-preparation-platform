@@ -1,0 +1,45 @@
+# Operating Systems: category | difficulty | topic | GeeksforGeeks article
+Basics | EASY | What is a kernel? | https://www.geeksforgeeks.org/operating-systems/kernel-in-operating-system/
+Basics | EASY | Types of system calls | https://www.geeksforgeeks.org/operating-systems/different-types-of-system-calls-in-os/
+Processes & Threads | EASY | Process vs thread | https://www.geeksforgeeks.org/operating-systems/difference-between-process-and-thread/
+Processes & Threads | EASY | Process Control Block (PCB) | https://www.geeksforgeeks.org/operating-systems/process-control-block-in-os/
+Processes & Threads | MEDIUM | Thread Control Block (TCB) | https://www.geeksforgeeks.org/operating-systems/thread-control-block-in-operating-system/
+Processes & Threads | MEDIUM | Process creation and deletion | https://www.geeksforgeeks.org/operating-systems/process-creation-and-deletions-in-operating-systems/
+Processes & Threads | MEDIUM | Swapping vs context switching | https://www.geeksforgeeks.org/difference-between-swapping-and-context-switching/
+Processes & Threads | EASY | Orphan processes | https://www.geeksforgeeks.org/operating-systems/orphan-processes/
+Processes & Threads | MEDIUM | Zombie processes and their prevention | https://www.geeksforgeeks.org/operating-systems/zombie-processes-prevention/
+Processes & Threads | MEDIUM | Zombie vs orphan vs daemon processes | https://www.geeksforgeeks.org/operating-systems/difference-between-zombie-orphan-and-daemon-processes/
+CPU Scheduling | EASY | CPU scheduling basics | https://www.geeksforgeeks.org/operating-systems/cpu-scheduling-in-operating-systems/
+CPU Scheduling | EASY | Preemptive vs non-preemptive scheduling | https://www.geeksforgeeks.org/operating-systems/preemptive-and-non-preemptive-scheduling/
+CPU Scheduling | EASY | FCFS vs SJF scheduling | https://www.geeksforgeeks.org/operating-systems/difference-between-fcfs-and-sjf-cpu-scheduling-algorithms/
+CPU Scheduling | MEDIUM | Priority vs SJF scheduling | https://www.geeksforgeeks.org/operating-systems/difference-between-priority-scheduling-and-shortest-job-first-sjf-cpu-scheduling/
+CPU Scheduling | MEDIUM | Comparison of CPU scheduling algorithms | https://www.geeksforgeeks.org/operating-systems/comparison-of-different-cpu-scheduling-algorithms-in-os/
+CPU Scheduling | EASY | Short-term scheduler | https://www.geeksforgeeks.org/operating-systems/short-term-scheduler-in-operating-system/
+Synchronization | EASY | Process synchronization and the critical section | https://www.geeksforgeeks.org/operating-systems/introduction-of-process-synchronization/
+Synchronization | MEDIUM | Software solutions (Peterson's algorithm) | https://www.geeksforgeeks.org/gate/software-based-solutions/
+Synchronization | MEDIUM | Semaphores | https://www.geeksforgeeks.org/operating-systems/semaphores-in-process-synchronization/
+Synchronization | MEDIUM | Mutex vs semaphore | https://www.geeksforgeeks.org/operating-systems/mutex-vs-semaphore/
+Synchronization | MEDIUM | Producer-consumer problem | https://www.geeksforgeeks.org/operating-systems/producer-consumer-problem-using-semaphores-set-1/
+Synchronization | HARD | Readers-writers problem | https://www.geeksforgeeks.org/readers-writers-problem-set-1-introduction-and-readers-preference-solution/
+Synchronization | HARD | Dining philosophers problem | https://www.geeksforgeeks.org/operating-systems/dining-philosopher-problem-using-semaphores/
+Deadlocks | EASY | What is a deadlock? | https://www.geeksforgeeks.org/operating-systems/introduction-of-deadlock-in-operating-system/
+Deadlocks | EASY | Necessary conditions for deadlock | https://www.geeksforgeeks.org/operating-systems/conditions-for-deadlock-in-operating-system/
+Deadlocks | MEDIUM | Methods for handling deadlocks | https://www.geeksforgeeks.org/operating-systems/handling-deadlocks/
+Deadlocks | MEDIUM | Deadlock prevention | https://www.geeksforgeeks.org/operating-systems/deadlock-prevention/
+Deadlocks | MEDIUM | Deadlock detection and recovery | https://www.geeksforgeeks.org/operating-systems/deadlock-detection-recovery/
+Deadlocks | HARD | Banker's algorithm | https://www.geeksforgeeks.org/operating-systems/bankers-algorithm-in-operating-system-2/
+Memory Management | EASY | Memory management basics | https://www.geeksforgeeks.org/operating-systems/memory-management-in-operating-system/
+Memory Management | EASY | Internal vs external fragmentation | https://www.geeksforgeeks.org/operating-systems/difference-between-internal-and-external-fragmentation/
+Memory Management | MEDIUM | Paging | https://www.geeksforgeeks.org/operating-systems/paging-in-operating-system/
+Memory Management | MEDIUM | Paging vs segmentation | https://www.geeksforgeeks.org/operating-systems/difference-between-paging-and-segmentation/
+Memory Management | HARD | Paged segmentation and segmented paging | https://www.geeksforgeeks.org/operating-systems/paged-segmentation-and-segmented-paging/
+Memory Management | MEDIUM | Translation Lookaside Buffer (TLB) | https://www.geeksforgeeks.org/computer-organization-architecture/translation-lookaside-buffer-tlb/
+Virtual Memory | MEDIUM | Virtual memory | https://www.geeksforgeeks.org/virtual-memory-in-operating-system/
+Virtual Memory | MEDIUM | Demand paging | https://www.geeksforgeeks.org/operating-systems/what-is-demand-paging-in-operating-system/
+Virtual Memory | MEDIUM | Page fault handling | https://www.geeksforgeeks.org/computer-organization-architecture/page-fault-handling/
+Virtual Memory | MEDIUM | Page replacement algorithms (FIFO, LRU, Optimal) | https://www.geeksforgeeks.org/operating-systems/page-replacement-algorithms-in-operating-systems/
+Virtual Memory | HARD | Thrashing and how to handle it | https://www.geeksforgeeks.org/techniques-to-handle-thrashing/
+Virtual Memory | HARD | Working set model | https://www.geeksforgeeks.org/working-set-in-paging/
+Storage | MEDIUM | Disk scheduling algorithms | https://www.geeksforgeeks.org/operating-systems/disk-scheduling-algorithms/
+Revision | MEDIUM | Top OS interview questions | https://www.geeksforgeeks.org/operating-systems/operating-systems-interview-questions/
+Revision | EASY | OS last-minute notes | https://www.geeksforgeeks.org/operating-systems/last-minute-notes-operating-systems/

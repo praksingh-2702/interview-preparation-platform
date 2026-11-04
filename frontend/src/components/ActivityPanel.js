@@ -35,11 +35,11 @@ const ActivityPanel = ({ stats }) => {
                     <span className="streak-value">{stats?.activeDays ?? 0}</span>
                     <span className="streak-label">active days</span>
                 </div>
-                <p className="activity-total">{total} {total === 1 ? 'activity' : 'activities'} in the last year</p>
+                <p className="activity-total">{total} {total === 1 ? 'question' : 'questions'} completed in the last year</p>
             </div>
 
             <div className="heatmap-scroll" ref={scrollRef}>
-                <div className="heatmap" role="img" aria-label={`Activity heatmap: ${total} activities in the last year`}>
+                <div className="heatmap" role="img" aria-label={`Activity heatmap: ${total} questions completed in the last year`}>
                     <div className="heatmap-months" aria-hidden="true">
                         {monthLabels.map((m) => (
                             <span key={`${m.week}-${m.label}`} style={{ gridColumnStart: m.week + 1 }}>{m.label}</span>
@@ -55,7 +55,7 @@ const ActivityPanel = ({ stats }) => {
                                     <span
                                         key={cell.date}
                                         className={`cell level-${cell.level} ${cell.future ? 'cell-future' : ''}`}
-                                        title={cell.future ? '' : `${cell.count} ${cell.count === 1 ? 'activity' : 'activities'} on ${formatDate(cell.date)}`}
+                                        title={cell.future ? '' : `${cell.count} completed on ${formatDate(cell.date)}`}
                                     />
                                 ))}
                             </div>

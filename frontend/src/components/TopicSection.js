@@ -3,7 +3,7 @@ import QuestionRow from './QuestionRow';
 import { isDue } from '../utils/time';
 
 const TopicSection = ({
-    topic, questions, progressMap, notes, saving, now, expanded,
+    topic, questions, progressMap, notes, saving, now, expanded, verb,
     onToggleExpanded, onToggleProgress, onOpenNotes,
 }) => {
     const solved = questions.filter((q) => progressMap[String(q.id)]?.solved).length;
@@ -34,6 +34,7 @@ const TopicSection = ({
                                 hasNote={!!notes[key]}
                                 due={isDue(progressMap[key], now)}
                                 saving={!!saving[key]}
+                                verb={verb}
                                 onToggle={onToggleProgress}
                                 onOpenNotes={onOpenNotes}
                             />

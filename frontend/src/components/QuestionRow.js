@@ -1,9 +1,11 @@
 import React from 'react';
 import { DIFFICULTY_LABEL } from '../utils/stats';
 
-const QuestionRow = ({ question, status, hasNote, due, saving, onToggle, onOpenNotes }) => {
+/** One question. The title links out: LeetCode for DSA, a GeeksforGeeks article for OOPS / OS / CN. */
+const QuestionRow = ({ question, status, hasNote, due, saving, verb = 'Solved', onToggle, onOpenNotes }) => {
     const solved = !!status?.solved;
     const revised = !!status?.revised;
+    const companies = question.companies || [];
 
     return (
         <li className={`question ${solved ? 'question-solved' : ''}`}>
@@ -19,9 +21,11 @@ const QuestionRow = ({ question, status, hasNote, due, saving, onToggle, onOpenN
                 <span className={`pill pill-${question.difficulty.toLowerCase()}`}>
                     {DIFFICULTY_LABEL[question.difficulty] || question.difficulty}
                 </span>
-                <span className="companies">
-                    {(question.companies || []).map((c) => <span key={c} className="chip">{c}</span>)}
-                </span>
+                {companies.length > 0 && (
+                    <span className="companies">
+                        {companies.map((c) => <span key={c} className="chip">{c}</span>)}
+                    </span>
+                )}
             </div>
 
             <div className="question-actions">
@@ -33,7 +37,7 @@ const QuestionRow = ({ question, status, hasNote, due, saving, onToggle, onOpenN
                 <label className="check check-solved">
                     <input type="checkbox" checked={solved} disabled={saving}
                            onChange={() => onToggle(question.id, 'solved')} />
-                    Solved
+                    {verb}
                 </label>
                 <label className="check check-revised">
                     <input type="checkbox" checked={revised} disabled={saving}

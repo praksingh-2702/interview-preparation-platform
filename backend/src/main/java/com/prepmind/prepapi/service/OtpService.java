@@ -114,10 +114,10 @@ public class OtpService {
         String text = "Hi " + user.getUsername() + ",\n\n"
                 + "Your code to " + action + " is: " + code + "\n\n"
                 + "It expires in 10 minutes. If you didn't request this, you can ignore this email.\n\n"
-                + "- FreakCode Top 100";
+                + "- FreakCode";
         String html = "<div style=\"font-family:-apple-system,Segoe UI,Arial,sans-serif;max-width:480px;margin:auto;"
                 + "padding:24px;background:#0d1117;color:#c9d1d9;border-radius:12px\">"
-                + "<h2 style=\"color:#f0f6fc;margin:0 0 12px\">FreakCode <span style=\"color:#58a6ff;font-weight:400\">Top 100</span></h2>"
+                + "<h2 style=\"color:#f0f6fc;margin:0 0 12px\">FreakCode</h2>"
                 + "<p>Hi " + escape(user.getUsername()) + ",</p>"
                 + "<p>Your code to " + action + " is:</p>"
                 + "<p style=\"font-size:32px;font-weight:700;letter-spacing:8px;color:#f0f6fc;margin:16px 0\">" + code + "</p>"

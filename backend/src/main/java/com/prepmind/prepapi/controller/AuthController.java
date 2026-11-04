@@ -2,6 +2,7 @@ package com.prepmind.prepapi.controller;
 
 import com.prepmind.prepapi.dto.AuthResponse;
 import com.prepmind.prepapi.dto.EmailRequest;
+import com.prepmind.prepapi.dto.GoogleLoginRequest;
 import com.prepmind.prepapi.dto.LoginRequest;
 import com.prepmind.prepapi.dto.MessageResponse;
 import com.prepmind.prepapi.dto.RegisterRequest;
@@ -20,7 +21,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/** register → verify-email → login; forgot-password → reset-password. */
+/** register → verify-email → login; google; forgot-password → reset-password. */
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
@@ -51,6 +52,12 @@ public class AuthController {
     @PostMapping("/login")
     public AuthResponse login(@Valid @RequestBody LoginRequest request, HttpServletRequest httpRequest) {
         return authService.login(request, httpRequest.getRemoteAddr());
+    }
+
+    /** Sign in with Google: the browser sends the ID token from Google Identity Services. */
+    @PostMapping("/google")
+    public AuthResponse google(@Valid @RequestBody GoogleLoginRequest request) {
+        return authService.googleLogin(request.credential());
     }
 
     @PostMapping("/forgot-password")

@@ -1,6 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import api, { getErrorCode, getErrorMessage, getFieldErrors, getRetryAfter } from '../services/api';
 import Brand from './Brand';
+import GoogleButton from './GoogleButton';
+import UsernameStatus from './UsernameStatus';
+import useUsernameCheck from '../hooks/useUsernameCheck';
 
 const SLOW_SERVER_MS = 5000;
 const RESEND_COOLDOWN = 60;
@@ -9,6 +12,7 @@ const RESEND_COOLDOWN = 60;
  * Account screens:
  *   login ⇄ register → verify (6-digit code) → login
  *   login → forgot (email) → reset (code + new password) → login
+ *   Sign in with Google → straight in (new Google users then pick a username)
  */
 const Login = ({ onLoginSuccess, notice = '' }) => {
     const [mode, setMode] = useState('login');
@@ -21,6 +25,7 @@ const Login = ({ onLoginSuccess, notice = '' }) => {
     const [success, setSuccess] = useState('');
     const [cooldown, setCooldown] = useState(0);
     const slowTimer = useRef(null);
+    const usernameCheck = useUsernameCheck(form.username, { enabled: mode === 'register' });
 
     useEffect(() => () => clearTimeout(slowTimer.current), []);
 
@@ -74,7 +79,7 @@ const Login = ({ onLoginSuccess, notice = '' }) => {
                 username: form.username.trim(),
                 password: form.password,
             });
-            onLoginSuccess({ token: data.token, username: data.username });
+            onLoginSuccess(data);
         } catch (err) {
             if (getErrorCode(err) === 'EMAIL_NOT_VERIFIED') {
                 setPendingEmail(err.response.data.email || err.response.data.properties?.email || '');
@@ -86,6 +91,11 @@ const Login = ({ onLoginSuccess, notice = '' }) => {
             throw err;
         }
     }, 'Login failed.');
+
+    const handleGoogle = (credential) => run(async () => {
+        const { data } = await api.post('/api/auth/google', { credential });
+        onLoginSuccess(data);
+    }, 'Google sign-in failed. Please try again.');
 
     const handleRegister = () => run(async () => {
         const { data } = await api.post('/api/auth/register', {
@@ -183,7 +193,7 @@ const Login = ({ onLoginSuccess, notice = '' }) => {
         <div className="auth-page">
             <div className="auth-card">
                 <Brand as="h1" className="auth-brand" />
-                <p className="auth-tagline">Track your way through the 100 DSA problems interviews actually ask.</p>
+                <p className="auth-tagline">DSA, OOPS, OS and CN: track everything placement interviews actually ask.</p>
 
                 {isTabbed ? (
                     <div className="tabs" role="tablist" aria-label="Account">
@@ -217,7 +227,7 @@ const Login = ({ onLoginSuccess, notice = '' }) => {
                             </label>
                             <input
                                 id="auth-username"
-                                aria-describedby={fieldErrors.username ? 'auth-username-error' : undefined}
+                                aria-describedby={fieldErrors.username || mode === 'register' ? 'auth-username-error' : undefined}
                                 type="text"
                                 autoComplete="username"
                                 value={form.username}
@@ -229,7 +239,10 @@ const Login = ({ onLoginSuccess, notice = '' }) => {
                                 title={mode === 'register' ? 'Letters, digits, ".", "_" and "-" only' : undefined}
                                 aria-invalid={!!fieldErrors.username}
                             />
-                            {fieldErrors.username && <span className="field-error" id="auth-username-error">{fieldErrors.username}</span>}
+                            {mode === 'register'
+                                ? <UsernameStatus id="auth-username-error" check={usernameCheck} error={fieldErrors.username}
+                                                  hint="Shown on the leaderboard." />
+                                : fieldErrors.username && <span className="field-error" id="auth-username-error">{fieldErrors.username}</span>}
                         </div>
                     )}
 
@@ -306,7 +319,8 @@ const Login = ({ onLoginSuccess, notice = '' }) => {
                         <p className="field-hint auth-explain">Enter your account's email and we'll send you a 6-digit code.</p>
                     )}
 
-                    <button type="submit" className="btn btn-primary btn-block" disabled={submitting}>
+                    <button type="submit" className="btn btn-primary btn-block"
+                            disabled={submitting || (mode === 'register' && usernameCheck.status === 'taken')}>
                         {submitLabels[mode][submitting ? 1 : 0]}
                     </button>
 
@@ -316,6 +330,10 @@ const Login = ({ onLoginSuccess, notice = '' }) => {
                         </p>
                     )}
                 </form>
+
+                {isTabbed && (
+                    <GoogleButton onCredential={handleGoogle} text={mode === 'register' ? 'signup_with' : 'continue_with'} />
+                )}
             </div>
         </div>
     );
