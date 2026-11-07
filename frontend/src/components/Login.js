@@ -3,6 +3,7 @@ import api, { getErrorCode, getErrorMessage, getFieldErrors, getRetryAfter } fro
 import Brand from './Brand';
 import GoogleButton from './GoogleButton';
 import UsernameStatus from './UsernameStatus';
+import { clearStartMode, peekStartMode } from '../utils/startMode';
 import useUsernameCheck from '../hooks/useUsernameCheck';
 
 const SLOW_SERVER_MS = 5000;
@@ -15,7 +16,7 @@ const RESEND_COOLDOWN = 60;
  *   Sign in with Google → straight in (new Google users then pick a username)
  */
 const Login = ({ onLoginSuccess, notice = '' }) => {
-    const [mode, setMode] = useState('login');
+    const [mode, setMode] = useState(peekStartMode); // 'register' when the landing page's Get started was clicked
     const [form, setForm] = useState({ username: '', email: '', password: '', code: '', newPassword: '' });
     const [pendingEmail, setPendingEmail] = useState('');
     const [submitting, setSubmitting] = useState(false);
@@ -28,6 +29,9 @@ const Login = ({ onLoginSuccess, notice = '' }) => {
     const usernameCheck = useUsernameCheck(form.username, { enabled: mode === 'register' });
 
     useEffect(() => () => clearTimeout(slowTimer.current), []);
+
+    // The landing page's choice only applies to the first screen; later visits (e.g. after logout) start at login.
+    useEffect(() => { clearStartMode(); }, []);
 
     useEffect(() => {
         if (cooldown <= 0) return undefined;

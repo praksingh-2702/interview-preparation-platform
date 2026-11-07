@@ -1,0 +1,82 @@
+/* ===== Landing page (shown before sign-up / log-in) ===== */
+.landing {
+  position: relative; min-height: 100vh; overflow: hidden;
+  display: flex; align-items: center; justify-content: center; padding: 48px 20px;
+  background:
+    radial-gradient(ellipse at 50% 30%, rgba(31, 111, 235, 0.2), transparent 60%),
+    var(--bg);
+}
+
+/* Faint code symbols drifting upward in the background */
+.landing-glyphs { position: absolute; inset: 0; pointer-events: none; }
+.landing-glyph {
+  position: absolute; bottom: -40px; opacity: 0; color: var(--accent);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  animation: glyph-rise linear infinite;
+}
+@keyframes glyph-rise {
+  0%   { transform: translateY(0); opacity: 0; }
+  15%  { opacity: 0.16; }
+  85%  { opacity: 0.16; }
+  100% { transform: translateY(-115vh); opacity: 0; }
+}
+
+.landing-inner { position: relative; width: 100%; max-width: 640px; text-align: center; }
+
+/* The name: every letter fades in from a blur, one after another (slow motion) */
+.landing-title {
+  margin: 0; display: inline-flex; align-items: baseline;
+  font-size: clamp(44px, 12vw, 96px); font-weight: 700; line-height: 1.05; letter-spacing: -2px;
+  color: var(--text-strong);
+  animation: title-glow 1.6s ease-out 3s forwards;
+}
+.landing-letter {
+  display: inline-block; opacity: 0;
+  animation: letter-in 1.4s cubic-bezier(0.2, 0.7, 0.2, 1) forwards;
+  animation-delay: calc(0.3s + var(--i) * 0.24s);
+}
+.landing-letter-accent { color: var(--accent); font-weight: 400; }
+@keyframes letter-in {
+  0%   { opacity: 0; filter: blur(14px); transform: translateY(18px) scale(1.25); }
+  60%  { opacity: 1; }
+  100% { opacity: 1; filter: blur(0); transform: none; }
+}
+@keyframes title-glow {
+  to { text-shadow: 0 0 36px rgba(88, 166, 255, 0.35); }
+}
+
+/* Blinking cursor, like a code editor */
+.landing-cursor {
+  display: inline-block; align-self: center; width: 0.06em; height: 0.8em; margin-left: 8px;
+  background: var(--accent); animation: cursor-blink 1.06s steps(1) infinite;
+}
+@keyframes cursor-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+/* Everything below the name fades up after the reveal; the delay comes from --d */
+.landing-fade { opacity: 0; animation: fade-up 0.9s ease forwards; animation-delay: var(--d, 0s); }
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.landing-tagline { margin: 14px 0 0; font-size: clamp(18px, 4vw, 24px); font-weight: 600; color: var(--text-strong); }
+.landing-desc { margin: 14px auto 0; max-width: 520px; font-size: 16px; line-height: 1.6; color: var(--muted); }
+
+.landing-topics { list-style: none; margin: 22px 0 0; padding: 0; display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; }
+.landing-topic {
+  padding: 4px 12px; border-radius: 999px; font-size: 13px; font-weight: 600;
+  color: #a5d6ff; background: rgba(56, 139, 253, 0.12); border: 1px solid rgba(88, 166, 255, 0.3);
+}
+
+.landing-actions { margin-top: 28px; display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; }
+.landing-cta { padding: 11px 22px; font-size: 15px; }
+.landing-legal { margin: 28px 0 0; font-size: 12px; color: var(--muted); }
+.landing-legal a { color: var(--muted); }
+
+/* Anyone who prefers less motion gets the finished page straight away */
+@media (prefers-reduced-motion: reduce) {
+  .landing-letter, .landing-fade { animation: none; opacity: 1; filter: none; transform: none; }
+  .landing-title { animation: none; }
+  .landing-cursor { animation: none; opacity: 0; }
+  .landing-glyph { display: none; }
+}
